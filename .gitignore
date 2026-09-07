@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# Data and models
+data/seed_patents.json
+models/
+*.pkl
+*.joblib
+
+# Docker volumes
+pgvector_data/
+
+# OS
+.DS_Store
+Thumbs.db
+.env.template
