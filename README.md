@@ -1,10 +1,10 @@
 # ClaimGuard AI - Autonomous IP Discovery & Patent Infringement Engine
 
-**Phase 1: Infrastructure & Embedding Foundation**
+**Phase 2: Retrieval-Augmented Patent Infringement Analysis**
 
 ## 🎯 Project Objective
 
-ClaimGuard AI is an enterprise-grade LegalTech platform designed for autonomous patent infringement detection and intellectual property analysis. Phase 1 establishes the core infrastructure: semantic embeddings, vector database integration, and seed data management.
+ClaimGuard AI is a LegalTech platform for preliminary patent infringement analysis. The current implementation combines semantic embeddings, PostgreSQL/pgvector cosine retrieval, and grounded Gemini or Mistral report generation.
 
 ## 🏗️ Architecture Overview
 
@@ -12,9 +12,9 @@ ClaimGuard AI is an enterprise-grade LegalTech platform designed for autonomous 
 ┌─────────────────────────────────────────────────────────┐
 │                  FastAPI Application                     │
 ├─────────────────────────────────────────────────────────┤
-│  Embedding Engine (sentence-transformers) → 384-dim     │
-│  Vector Store (pgvector) ← PostgreSQL Backend            │
-│  Patent Database ← Seed Data Generator                   │
+│  Draft → EmbeddingEngine → pgvector cosine retrieval     │
+│  Retrieved claims → strict RAG prompt → Gemini/Mistral    │
+│  PostgreSQL Patent Store ← automatic JSON seed loading    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -29,6 +29,7 @@ ClaimGuard AI is an enterprise-grade LegalTech platform designed for autonomous 
 | **ORM** | SQLAlchemy | 2.0.25 |
 | **ML Backend** | PyTorch | 2.2.0 |
 | **Config Management** | Pydantic | 2.5.0 |
+| **LLM** | Google Gemini / Mistral | `gemini-3.6-flash` / `mistral-small-latest` |
 
 ## 📦 Installation
 
@@ -74,7 +75,33 @@ python generate_seed.py
 
 **Output:** `data/seed_patents.json` with 5 realistic patents
 
-### 4. Validate Embedding Engine
+### 4. Start the RAG API
+
+Copy `.env.template` to `.env`, then set `GEMINI_API_KEY` for Gemini or `MISTRAL_API_KEY` for fallback:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The application startup creates the pgvector table and automatically embeds the five JSON seed patents when the database is empty.
+
+Open Swagger UI at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 5. Analyze a Draft
+
+```bash
+curl -X POST http://localhost:8000/api/v1/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"user_draft":"An autonomous indoor drone uses LiDAR and event cameras to build a sparse 3D occupancy map and uses reinforcement learning for collision-free path planning on an edge FPGA."}'
+```
+
+### 6. Run the RAG Terminal Demo
+
+```bash
+python demo_rag.py
+```
+
+### 7. Validate Embedding Engine
 
 ```bash
 python embeddings.py
@@ -92,12 +119,10 @@ python embeddings.py
 cloudproj/
 ├── app/                          # FastAPI application package
 │   ├── __init__.py
-│   ├── core/                     # Core business logic
-│   │   └── __init__.py
-│   ├── models/                   # SQLAlchemy models (Phase 2)
-│   │   └── __init__.py
-│   └── api/                      # API route handlers (Phase 2)
-│       └── __init__.py
+│   ├── core/                     # Config, database, prompts
+│   ├── models/                   # SQLAlchemy + pgvector models
+│   ├── services/                 # Retrieval and LLM orchestration
+│   └── api/                      # FastAPI route handlers
 ├── data/
 │   └── seed_patents.json         # Generated patent dataset
 ├── logs/                         # Application logs
@@ -107,6 +132,7 @@ cloudproj/
 ├── requirements.txt              # Python dependencies
 ├── generate_seed.py              # Seed data generator script
 ├── embeddings.py                 # Vector embedding engine
+├── demo_rag.py                    # End-to-end terminal demonstration
 ├── README.md                     # This file
 └── SETUP.md                      # Detailed setup guide
 ```
@@ -222,14 +248,49 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - [x] Batch processing validated
 - [x] Similarity computation working
 
-## 📚 Next Steps (Phase 2)
+## 🔌 API Endpoints
 
-- [ ] Database schema with pgvector integration
-- [ ] FastAPI endpoints for patent ingestion
-- [ ] Similarity search implementation
-- [ ] Patent infringement matching algorithm
-- [ ] REST API documentation (Swagger)
-- [ ] Unit test suite
+### `GET /api/v1/health`
+
+Checks PostgreSQL connectivity and verifies that the embedding model produces 384-dimensional vectors.
+
+### `POST /api/v1/analyze`
+
+Request:
+
+```json
+{
+  "user_draft": "Technical product or implementation description",
+  "top_k": 5
+}
+```
+
+The response contains:
+
+- Retrieved patents ordered by pgvector cosine distance
+- Cosine similarity scores
+- Patent claims supplied to the LLM
+- A structured JSON infringement report
+
+The report is constrained to retrieved claims and includes risk rating, overlapping patent claims, technical differences, design-around recommendations, limitations, and a final preliminary verdict summary.
+
+## 🧠 RAG Execution Flow
+
+1. Validate the draft with Pydantic.
+2. Encode the draft using `all-MiniLM-L6-v2`.
+3. Query PostgreSQL using pgvector `<=>` cosine distance.
+4. Format only retrieved patent metadata and numbered claims as context.
+5. Send the grounded prompt to Gemini `gemini-3.6-flash`.
+6. Fall back to Mistral if Gemini is unavailable.
+7. Return retrieval scores and the structured report through FastAPI.
+
+## 📚 Next Steps (Phase 3)
+
+- [ ] Patent ingestion endpoints for non-synthetic data
+- [ ] Claim-level embeddings and hybrid lexical retrieval
+- [ ] Authentication and audit logging
+- [ ] Human legal-review workflow
+- [ ] Evaluation dataset and retrieval/grounding metrics
 
 ## 🔧 Troubleshooting
 
