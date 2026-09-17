@@ -4,7 +4,6 @@ import json
 import logging
 from typing import Any, Mapping, Sequence
 
-import httpx
 from google import genai
 from google.genai import types
 
@@ -75,46 +74,11 @@ async def _generate_with_gemini(prompt: str) -> str:
             close_method()
 
 
-async def _generate_with_mistral(prompt: str) -> str:
-    """Generate grounded content with the Mistral chat-completions API."""
-    settings = get_settings()
-    if not settings.mistral_api_key:
-        raise RuntimeError("MISTRAL_API_KEY is not configured")
-
-    payload = {
-        "model": settings.mistral_model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": settings.llm_temperature,
-        "max_tokens": settings.llm_max_output_tokens,
-        "response_format": {"type": "json_object"},
-    }
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.post(
-            f"{settings.mistral_base_url.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.mistral_api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
-        response.raise_for_status()
-        body = response.json()
-        choices = body.get("choices") or []
-        message = choices[0].get("message", {}) if choices else {}
-        generated_text = message.get("content")
-        if not isinstance(generated_text, str) or not generated_text.strip():
-            raise RuntimeError("Mistral returned an empty response")
-        return generated_text
-
-
 async def generate_infringement_report(
     user_draft: str,
     top_patents: list[dict[str, Any]],
 ) -> str:
-    """Generate a grounded infringement report using Gemini, then Mistral fallback."""
+    """Generate a grounded infringement report using Gemini."""
     if not user_draft.strip():
         raise ValueError("user_draft must be a non-empty string")
     if not top_patents:
@@ -128,17 +92,10 @@ async def generate_infringement_report(
         logger.info("Generated infringement report with Gemini")
         return report
     except Exception as gemini_error:
-        logger.warning("Gemini generation failed; trying Mistral fallback: %s", gemini_error)
-
-    try:
-        report = await _generate_with_mistral(prompt)
-        logger.info("Generated infringement report with Mistral fallback")
-        return report
-    except Exception as mistral_error:
-        logger.error("Both Gemini and Mistral report generation failed: %s", mistral_error)
+        logger.error("Gemini report generation failed: %s", gemini_error)
         raise RuntimeError(
-            "No LLM provider is available. Configure GEMINI_API_KEY or MISTRAL_API_KEY."
-        ) from mistral_error
+            "Gemini report generation failed. Check GEMINI_API_KEY and GEMINI_MODEL."
+        ) from gemini_error
 
 
 def parse_report_json(report: str) -> dict[str, Any]:

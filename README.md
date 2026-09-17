@@ -4,7 +4,7 @@
 
 ## 🎯 Project Objective
 
-ClaimGuard AI is a LegalTech platform for preliminary patent infringement analysis. The current implementation combines semantic embeddings, PostgreSQL/pgvector cosine retrieval, and grounded Gemini or Mistral report generation.
+ClaimGuard AI is a LegalTech platform for preliminary patent infringement analysis. The current implementation combines semantic embeddings, PostgreSQL/pgvector cosine retrieval, and grounded Gemini report generation.
 
 ## 🏗️ Architecture Overview
 
@@ -13,7 +13,7 @@ ClaimGuard AI is a LegalTech platform for preliminary patent infringement analys
 │                  FastAPI Application                     │
 ├─────────────────────────────────────────────────────────┤
 │  Draft → EmbeddingEngine → pgvector cosine retrieval     │
-│  Retrieved claims → strict RAG prompt → Gemini/Mistral    │
+│  Retrieved claims → strict RAG prompt → Gemini            │
 │  PostgreSQL Patent Store ← automatic JSON seed loading    │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -29,7 +29,7 @@ ClaimGuard AI is a LegalTech platform for preliminary patent infringement analys
 | **ORM** | SQLAlchemy | 2.0.25 |
 | **ML Backend** | PyTorch | 2.2.0 |
 | **Config Management** | Pydantic | 2.5.0 |
-| **LLM** | Google Gemini / Mistral | `gemini-3.6-flash` / `mistral-small-latest` |
+| **LLM** | Google Gemini | `gemini-3.5-flash-lite` |
 
 ## 📦 Installation
 
@@ -77,7 +77,7 @@ python generate_seed.py
 
 ### 4. Start the RAG API
 
-Copy `.env.template` to `.env`, then set `GEMINI_API_KEY` for Gemini or `MISTRAL_API_KEY` for fallback:
+Copy `.env.template` to `.env`, then set `GEMINI_API_KEY` for Gemini:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -132,9 +132,9 @@ cloudproj/
 ├── requirements.txt              # Python dependencies
 ├── generate_seed.py              # Seed data generator script
 ├── embeddings.py                 # Vector embedding engine
-├── demo_rag.py                    # End-to-end terminal demonstration
+├── demo_rag.py                   # End-to-end terminal demonstration
 ├── README.md                     # This file
-└── SETUP.md                      # Detailed setup guide
+└── test_phase1.py                # Structural validation tests
 ```
 
 ## 🚀 Quick Start
@@ -280,8 +280,7 @@ The report is constrained to retrieved claims and includes risk rating, overlapp
 2. Encode the draft using `all-MiniLM-L6-v2`.
 3. Query PostgreSQL using pgvector `<=>` cosine distance.
 4. Format only retrieved patent metadata and numbered claims as context.
-5. Send the grounded prompt to Gemini `gemini-3.6-flash`.
-6. Fall back to Mistral if Gemini is unavailable.
+5. Send the grounded prompt to Gemini `gemini-3.5-flash-lite`.
 7. Return retrieval scores and the structured report through FastAPI.
 
 ## 📚 Next Steps (Phase 3)
@@ -317,23 +316,21 @@ chmod 755 logs/
 
 ## 📖 Documentation
 
-- **[SETUP.md](SETUP.md)** - Detailed installation & Docker commands
 - **[embeddings.py](embeddings.py)** - Embedding engine with inline documentation
 - **[generate_seed.py](generate_seed.py)** - Seed data generator with examples
 
 ## 📝 License & Attribution
 
-ClaimGuard AI Phase 1 | LegalTech Patent Analysis Engine
+ClaimGuard AI | LegalTech Patent Analysis Engine
 Built with FastAPI, sentence-transformers, and pgvector
 
 ## 🤝 Support
 
 For issues or questions:
-1. Check SETUP.md troubleshooting section
-2. Review inline code documentation
-3. Verify Docker container health
-4. Ensure Python 3.8+ compatibility
+1. Review inline code documentation
+2. Verify Docker container health
+3. Ensure Python 3.8+ compatibility
 
 ---
 
-**Status:** ✅ Phase 1 Complete & Ready for Phase 2 Development
+**Status:** ✅ FastAPI RAG service implemented

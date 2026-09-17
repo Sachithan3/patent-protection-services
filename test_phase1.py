@@ -71,7 +71,6 @@ def test_project_structure():
         ".env.template": "Environment template",
         ".gitignore": "Git ignore rules",
         "README.md": "Project documentation",
-        "SETUP.md": "Setup guide",
         "generate_seed.py": "Seed data generator",
         "embeddings.py": "Embedding engine",
     }
