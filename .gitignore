@@ -53,7 +53,7 @@ npm-debug.log*
 
 # Data and models
 data/seed_patents.json
-models/
+/models/
 *.pkl
 *.joblib
 
