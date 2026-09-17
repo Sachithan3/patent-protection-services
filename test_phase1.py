@@ -116,7 +116,6 @@ def test_requirements_file():
         "sentence-transformers": "Embedding model",
         "torch": "ML framework",
         "sqlalchemy": "ORM",
-        "psycopg2-binary": "PostgreSQL driver",
         "pgvector": "Vector extension",
         "numpy": "Numerical computing",
         "scipy": "Scientific computing",
