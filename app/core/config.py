@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     """Runtime configuration for ClaimGuard AI."""
 
     database_host: str = "localhost"
-    database_port: int = 5432
+    database_port: int = 5433
     database_user: str = "claimguard_user"
-    database_password: str = "claimguard_secure_password_123"
+    database_password: str = ""
     database_name: str = "claimguard_db"
 
     embedding_model: str = "all-MiniLM-L6-v2"

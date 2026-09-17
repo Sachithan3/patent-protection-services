@@ -51,16 +51,24 @@ pip install -r requirements.txt
 ### 2. Launch PostgreSQL with pgvector
 
 ```bash
+cp .env.template .env
+# Edit .env and set DATABASE_PASSWORD and GEMINI_API_KEY.
+
 docker run \
   --name claimguard-pgvector \
   -e POSTGRES_USER=claimguard_user \
-  -e POSTGRES_PASSWORD=claimguard_secure_password_123 \
+  -e POSTGRES_PASSWORD=your_local_database_password \
   -e POSTGRES_DB=claimguard_db \
-  -p 5432:5432 \
+  -p 5433:5432 \
   -v pgvector_data:/var/lib/postgresql/data \
   -d \
   ankane/pgvector:latest
 ```
+
+Use the same values for `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`
+in `.env` as `DATABASE_USER`, `DATABASE_PASSWORD`, and `DATABASE_NAME`.
+The password shown above is only a placeholder for local development; do not
+commit real passwords or API keys.
 
 **Verify:**
 ```bash
@@ -141,12 +149,13 @@ cloudproj/
 
 ```bash
 # Full setup (one-liner with proper order)
+cp .env.template .env && \
 pip install -r requirements.txt && \
 docker run --name claimguard-pgvector \
   -e POSTGRES_USER=claimguard_user \
-  -e POSTGRES_PASSWORD=claimguard_secure_password_123 \
+  -e POSTGRES_PASSWORD=your_local_database_password \
   -e POSTGRES_DB=claimguard_db \
-  -p 5432:5432 -d ankane/pgvector:latest && \
+  -p 5433:5432 -d ankane/pgvector:latest && \
 python generate_seed.py && \
 python embeddings.py
 ```
@@ -225,9 +234,9 @@ dim = engine.get_vector_dimension()
 ### PostgreSQL Connection
 ```
 Host: localhost
-Port: 5432
+Port: 5433
 User: claimguard_user
-Password: claimguard_secure_password_123
+Password: value of DATABASE_PASSWORD in .env
 Database: claimguard_db
 ```
 
@@ -240,7 +249,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ## ✅ Validation Checklist
 
 - [x] Python dependencies installed
-- [x] PostgreSQL container running on port 5432
+- [x] PostgreSQL container running on port 5433
 - [x] Seed data generated (5 patents)
 - [x] Embedding engine initialized
 - [x] Vector dimension verified (384)
