@@ -1,0 +1,10 @@
+{
+  "patents": [
+    {
+      "patent_id": "10123456",
+      "patent_title": "Warehouse inventory robot with lidar mapping",
+      "patent_abstract": "A robot navigates aisles using lidar and builds a sparse map for inventory counting.",
+      "patent_date": "2018-12-25"
+    }
+  ]
+}

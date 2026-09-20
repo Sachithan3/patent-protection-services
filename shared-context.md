@@ -41,6 +41,7 @@ Spec-internal assumptions (D1–D8, budgets, provider orders) are taken as-is fr
 
 ### Milestone log (newest first)
 
+- 2026-09-20 — **Phase 1b search adapters + registry + claims fallback.** PQAI / USPTO ODP / PatentsView adapters, parallel fan-out registry with dedupe merge, `ProviderHttpClient.post_json`, provider settings in `config.py`, `docs/PROVIDERS.md` verification record, respx/MockTransport contract tests + registry unit tests, `python -m app.providers.demo` CLI. Google Patents page claims fallback implemented (SSRF-guarded, stdlib parser, drop-not-guess) and wired as second claims source. Gates: pytest **86 passed**, ruff clean, mypy clean on 13 source files. EPO OPS intentionally deferred (OAuth + XML; behind `ENABLE_EPO=false` per spec). **Go/no-go #1 BLOCKED on credentials:** no PQAI token / USPTO key / PatentsView key available, so fixtures are synthetic-but-realistic and demo CLI returns warnings only (verified exit 1 with visible warnings).
 - 2026-09-20 — **Phase 0.5 + Phase 1a COMPLETE.** All gates green: pytest **70 passed** (0.3 s), ruff `All checks passed!`, mypy clean on 7 new source files. Deliverables:
   - Tooling: `pyproject.toml` (pytest testpaths/pythonpath/asyncio-mode/filterwarnings, ruff py310 + legacy-script exclusions, mypy scoped to new modules), `requirements-dev.txt`, `httpx`+`tenacity` added to `requirements.txt`.
   - Contracts: `app/models/patents.py` (`PatentStub`, `Claim`, `PatentClaims`), `app/models/plan.py` (`QueryVariant`, `SearchPlan`).
@@ -62,7 +63,8 @@ Spec-internal assumptions (D1–D8, budgets, provider orders) are taken as-is fr
 - [x] `app/providers/http.py` — shared client: 15 s timeout, tenacity retries (429/5xx/timeouts), rate limit, circuit breaker.
 - [x] Unit tests: `test_ids.py` (17 formats), `test_ratelimit.py`, `test_ssrf.py`, `test_http.py` (MockTransport).
 - [x] `.venv` created; pytest + ruff + mypy all green.
-- Deferred to Phase 1b: `pqai.py`, `uspto_odp.py`, `patentsview.py`, `epo_ops.py`, `google_patents_page.py`, `registry.py`, fixtures, `docs/PROVIDERS.md`, demo CLI.
+- [x] Phase 1b: `pqai.py`, `uspto_odp.py`, `patentsview.py`, `registry.py`, `google_patents_page.py`, `demo` CLI, `docs/PROVIDERS.md`, fixtures + contract/registry tests (86 passed, mypy 13 files). EPO OPS deferred behind `ENABLE_EPO=false`.
+- Live-verify PQAI/USPTO on real credentials before Phase 2 wiring (go/no-go #1 — currently blocked, see milestone log).
 
 ## Design notes / gotchas so far
 

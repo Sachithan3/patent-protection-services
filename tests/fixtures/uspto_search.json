@@ -1,0 +1,17 @@
+{
+  "count": 1,
+  "patentFileWrapperDataBag": [
+    {
+      "applicationNumberText": "16123456",
+      "applicationMetaData": {
+        "patentNumber": "10123456",
+        "inventionTitleBag": [
+          {"inventionTitleText": "Autonomous warehouse inventory robot"}
+        ],
+        "firstApplicantName": "Acme Robotics Inc",
+        "filingDate": "2019-03-14",
+        "grantDate": "2018-12-25"
+      }
+    }
+  ]
+}

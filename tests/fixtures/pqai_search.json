@@ -1,0 +1,21 @@
+{
+  "query": "a fire fighting drone",
+  "results": [
+    {
+      "id": "US10123456B2",
+      "title": "Firefighting drone with thermal imaging nozzle",
+      "abstract": "An unmanned aerial vehicle carries a water nozzle and a thermal camera to direct extinguishant at hotspot coordinates.",
+      "score": 0.873,
+      "date": "2018-12-25",
+      "cpc": ["A62C 37/00", "B64C 39/02"]
+    },
+    {
+      "id": "US 10,123,457 B2",
+      "title": "Bushfire suppression swarm coordination",
+      "abstract": null,
+      "score": 0.731,
+      "date": "2019-01-01",
+      "cpc": []
+    }
+  ]
+}

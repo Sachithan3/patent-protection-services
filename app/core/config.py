@@ -32,6 +32,20 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.1
     llm_max_output_tokens: int = 4096
 
+    # Provider layer (migration Phase 1b). Facts and dates: docs/PROVIDERS.md
+    pqai_base_url: str = "https://api.projectpq.ai"
+    pqai_token: str | None = Field(default=None, repr=False)
+    uspto_base_url: str = "https://api.uspto.gov"
+    uspto_api_key: str | None = Field(default=None, repr=False)
+    patentsview_base_url: str = "https://search.patentsview.org"
+    patentsview_api_key: str | None = Field(default=None, repr=False)
+    google_patents_base_url: str = "https://patents.google.com"
+    enable_epo: bool = False
+    provider_timeout_seconds: float = 15.0
+    provider_max_attempts: int = 3
+    provider_concurrency: int = 4
+    provider_user_agent: str = "ClaimGuardAI/1.0"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

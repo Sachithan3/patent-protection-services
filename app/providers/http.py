@@ -67,7 +67,19 @@ class ProviderHttpClient:
         headers: dict[str, str] | None = None,
     ) -> Any:
         """GET a URL and return the parsed JSON body."""
-        response = await self._send(url, params=params, headers=headers)
+        response = await self._send(url, params=params, headers=headers, json_body=None)
+        return response.json()
+
+    async def post_json(
+        self,
+        url: str,
+        *,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        """POST a JSON body and return the parsed JSON response."""
+        response = await self._send(url, params=params, headers=headers, json_body=json)
         return response.json()
 
     async def get_text(
@@ -78,7 +90,7 @@ class ProviderHttpClient:
         headers: dict[str, str] | None = None,
     ) -> str:
         """GET a URL and return the response body as text (page fetcher fallback)."""
-        response = await self._send(url, params=params, headers=headers)
+        response = await self._send(url, params=params, headers=headers, json_body=None)
         return response.text
 
     async def _send(
@@ -87,6 +99,7 @@ class ProviderHttpClient:
         *,
         params: dict[str, Any] | None,
         headers: dict[str, str] | None,
+        json_body: Any,
     ) -> httpx.Response:
         retryer = AsyncRetrying(
             retry=retry_if_exception_type(_Retryable),
@@ -96,7 +109,7 @@ class ProviderHttpClient:
         )
         try:
             response: httpx.Response = await retryer(
-                self._attempt_once, url, params=params, headers=headers
+                self._attempt_once, url, params=params, headers=headers, json_body=json_body
             )
         except CircuitOpenError as error:
             raise ProviderError(self.provider_name, "circuit open; call skipped") from error
@@ -116,13 +129,17 @@ class ProviderHttpClient:
         *,
         params: dict[str, Any] | None,
         headers: dict[str, str] | None,
+        json_body: Any,
     ) -> httpx.Response:
         if self._breaker is not None:
             self._breaker.check()
         if self._rate_limiter is not None:
             await self._rate_limiter.acquire()
+        method = "POST" if json_body is not None else "GET"
         try:
-            response = await self._client.get(url, params=params, headers=headers)
+            response = await self._client.request(
+                method, url, params=params, headers=headers, json=json_body
+            )
         except (httpx.TimeoutException, httpx.TransportError) as error:
             self._note_failure()
             raise _Retryable(f"{type(error).__name__}: {error}") from error
