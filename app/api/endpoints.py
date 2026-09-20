@@ -5,12 +5,12 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal
 from app.services.pipeline import analyze_draft_infringement, get_embedding_engine
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["ClaimGuard Analysis"])

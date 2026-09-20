@@ -1,0 +1,40 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+filterwarnings = [
+    # pytest-asyncio 0.23.x plugin noise on Python < 3.12; upstream issue, not our code.
+    "ignore:There is no current event loop:DeprecationWarning",
+]
+addopts = "-q"
+# NOTE: test_phase1.py at the repo root is a legacy structural script that asserts the
+# pre-migration world (pgvector, DB env vars). It is intentionally outside testpaths
+# until its rewrite in migration Phase 2.
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# Legacy pre-migration scripts slated for removal/rewrite in Phase 2: not gated on lint.
+extend-exclude = ["test_phase1.py", "generate_seed.py", "demo_rag.py", "embeddings.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt template text: line breaks inside the prompt are semantic; replaced in Phase 4.
+"app/core/rag_prompt.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+# Full-app typecheck needs the heavy deps (torch, fastapi, sqlalchemy...) installed;
+# until then, typecheck the new foundational modules only.
+files = [
+    "app/providers",
+    "app/core/ratelimit.py",
+    "app/core/circuitbreaker.py",
+    "app/core/ssrf.py",
+]
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true

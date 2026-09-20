@@ -50,6 +50,7 @@ npm-debug.log*
 .cache/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 
 # Data and models
 data/seed_patents.json

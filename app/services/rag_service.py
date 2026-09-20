@@ -2,7 +2,8 @@
 
 import json
 import logging
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from google import genai
 from google.genai import types
