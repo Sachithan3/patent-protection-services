@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.endpoints import router
 from app.core.config import get_settings
@@ -32,9 +33,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+app.mount("/app", StaticFiles(directory="app/static", html=True), name="frontend")
 
 
 @app.get("/", include_in_schema=False)
 async def root() -> dict[str, str]:
-    """Provide a discoverable root response."""
-    return {"service": "ClaimGuard AI", "docs": "/docs", "health": "/api/v1/health"}
+    """Provide the browser application and API links."""
+    return {"service": "ClaimGuard AI", "app": "/app/", "docs": "/docs", "health": "/api/v1/health"}

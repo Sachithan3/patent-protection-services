@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: claimguard-pgvector
+    environment:
+      POSTGRES_USER: claimguard_user
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-your_local_database_password}
+      POSTGRES_DB: claimguard_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claimguard_user -d claimguard_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - claimguard-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: claimguard-api
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=claimguard_user
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-your_local_database_password}
+      - DATABASE_NAME=claimguard_db
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - EMBEDDING_BATCH_SIZE=32
+      - EMBEDDING_VECTOR_DIMENSION=384
+      - HF_HOME=/tmp/huggingface
+      - SENTENCE_TRANSFORMERS_HOME=/tmp/sentence-transformers
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_RELOAD=false
+      - SEED_DATA_PATH=data/seed_patents.json
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-3.5-flash-lite
+      - LLM_MAX_OUTPUT_TOKENS=4096
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - model_cache:/tmp/sentence-transformers
+      - hf_cache:/tmp/huggingface
+    networks:
+      - claimguard-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  pgvector_data:
+  model_cache:
+  hf_cache:
+
+networks:
+  claimguard-network:
+    driver: bridge

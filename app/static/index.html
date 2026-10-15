@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClaimGuard | Patent intelligence</title>
+    <link rel="stylesheet" href="/app/styles.css?v=3" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/app/"><span class="brand-mark">C</span><span>ClaimGuard</span></a>
+      <span class="quiet">Patent intelligence, made practical</span>
+    </header>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">PRELIMINARY IP REVIEW</p>
+          <h1>Know where your idea<br /><em>may overlap.</em></h1>
+          <p class="lede">Describe a product or technical draft and ClaimGuard surfaces the closest indexed patents for a focused first look.</p>
+        </div>
+        <div class="hero-note"><span class="dot"></span><span id="status">Connecting to your patent library…</span></div>
+      </section>
+      <section class="workspace">
+        <div class="panel analyze-panel">
+          <div class="panel-heading"><div><p class="eyebrow">01 / ANALYZE</p><h2>Your technical draft</h2></div><span class="step">AI-assisted</span></div>
+          <textarea id="draft" placeholder="Example: A warehouse robot uses an event camera and LiDAR to build a sparse 3D map, then plans collision-free routes on an edge processor."></textarea>
+          <div class="form-footer"><span id="draft-count">0 characters</span><button id="analyze">Find related patents <span>→</span></button></div>
+          <p class="error" id="error" role="alert"></p>
+        </div>
+        <aside class="panel collection-panel">
+          <p class="eyebrow">YOUR LIBRARY</p>
+          <div class="stats"><div><strong id="patent-count">—</strong><span>indexed patents</span></div></div>
+          <div class="library-head"><h3>Recently indexed</h3><a href="#library">View all</a></div>
+          <div id="recent" class="recent"></div>
+        </aside>
+      </section>
+      <section id="results" class="results hidden">
+        <div class="results-heading"><div><p class="eyebrow">02 / REVIEW</p><h2>Closest patent signals</h2></div><span id="result-summary" class="quiet"></span></div>
+        <div id="matches" class="match-grid"></div>
+        <article id="final-report" class="final-report">
+          <div class="report-heading"><div><p class="eyebrow">03 / FINAL REPORT</p><h2>Preliminary risk assessment</h2></div><span id="risk-badge" class="risk-badge">—</span></div>
+          <div class="risk-overview">
+            <div class="risk-score"><strong id="risk-score">—</strong><span>risk score / 100</span></div>
+            <div><h3>Cross-patent comparison</h3><p id="comparison">Generating a grounded comparison…</p></div>
+          </div>
+          <div><h3>Risk factors</h3><div id="risk-factors" class="risk-factors"></div></div>
+          <div class="report-columns">
+            <div><h3>Overlapping claims</h3><ul id="overlapping-claims"></ul></div>
+            <div><h3>Technical differences</h3><ul id="technical-differences"></ul></div>
+          </div>
+          <div class="report-columns">
+            <div><h3>Design-around recommendations</h3><ul id="design-arounds"></ul></div>
+            <div><h3>Limitations</h3><ul id="limitations"></ul></div>
+          </div>
+          <p id="verdict" class="verdict"></p>
+        </article>
+      </section>
+      <section id="library" class="library-section">
+        <div class="results-heading"><div><p class="eyebrow">THE LIBRARY</p><h2>Indexed patents</h2></div><select id="category"><option value="">All technology areas</option></select></div>
+        <div id="all-patents" class="patent-list"></div>
+      </section>
+    </main>
+    <footer>ClaimGuard is a research aid, not legal advice. Always consult qualified counsel.</footer>
+    <script src="/app/app.js?v=3"></script>
+  </body>
+</html>

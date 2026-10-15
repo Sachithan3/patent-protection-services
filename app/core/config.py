@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     seed_data_path: str = "data/seed_patents.json"
-
     gemini_api_key: str | None = Field(default=None, repr=False)
     gemini_model: str = "gemini-3.5-flash-lite"
     llm_temperature: float = 0.1

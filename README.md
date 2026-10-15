@@ -95,7 +95,7 @@ The application startup creates the pgvector table and automatically embeds the 
 
 Open Swagger UI at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-### 5. Analyze a Draft
+### 6. Analyze a Draft
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/analyze \
@@ -103,13 +103,13 @@ curl -X POST http://localhost:8000/api/v1/analyze \
   -d '{"user_draft":"An autonomous indoor drone uses LiDAR and event cameras to build a sparse 3D occupancy map and uses reinforcement learning for collision-free path planning on an edge FPGA."}'
 ```
 
-### 6. Run the RAG Terminal Demo
+### 7. Run the RAG Terminal Demo
 
 ```bash
 python demo_rag.py
 ```
 
-### 7. Validate Embedding Engine
+### 8. Validate Embedding Engine
 
 ```bash
 python embeddings.py
@@ -343,3 +343,5 @@ For issues or questions:
 ---
 
 **Status:** ✅ FastAPI RAG service implemented
+
+The browser dashboard is available at [http://localhost:8000/app/](http://localhost:8000/app/).

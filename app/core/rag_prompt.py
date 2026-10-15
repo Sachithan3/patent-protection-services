@@ -16,6 +16,16 @@ Grounding rules:
 Return valid JSON only, with exactly this structure:
 {
   "overall_infringement_risk": "HIGH | MEDIUM | LOW",
+  "risk_score": 0,
+  "risk_factors": [
+    {
+      "name": "semantic_similarity | claim_element_overlap | feature_coverage | evidence_completeness",
+      "score": 0,
+      "weight": 0,
+      "rationale": "string grounded in the user draft and retrieved context"
+    }
+  ],
+  "cross_patent_comparison": "string comparing the strongest retrieved patent signals and explaining which is most relevant",
   "overlapping_claims": [
     {
       "patent_id": "string",
@@ -33,6 +43,13 @@ Risk guidance:
 - HIGH: retrieved claim elements substantially read on the user draft based on the supplied text.
 - MEDIUM: meaningful technical overlap exists, but one or more claim elements are uncertain or absent.
 - LOW: only broad conceptual similarity or no meaningful claim overlap is supported.
+- risk_score must be an integer from 0 to 100, where 0 is minimal supported risk and 100 is
+  the strongest supported preliminary overlap. Use the factors to explain the score; do not
+  treat cosine similarity alone as infringement evidence.
+- Use weights that add up to 100 across the four risk factors. When retrieved claims are empty
+  or incomplete, reduce evidence_completeness and state that the score is not legally conclusive.
+- Compare retrieved patents against one another, but do not infer relationships or claim scope
+  beyond their supplied text.
 """
 
 
