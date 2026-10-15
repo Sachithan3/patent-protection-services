@@ -33,6 +33,7 @@ class Patent(Base):
             "category": self.category,
             "abstract": self.abstract,
             "claims": self.claims,
+            "claims_available": bool(self.claims),
         }
         if distance is not None:
             payload["cosine_distance"] = float(distance)

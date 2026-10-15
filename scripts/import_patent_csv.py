@@ -4,9 +4,13 @@
 import argparse
 import asyncio
 import csv
+import json
 import logging
+import re
 import sys
+import csv as csv_module
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy.dialects.postgresql import insert
 
@@ -17,9 +21,45 @@ from app.models.patent import Patent
 from app.services.pipeline import get_embedding_engine
 
 logger = logging.getLogger("import_patent_csv")
+csv_module.field_size_limit(sys.maxsize)
+_CLAIM_START = re.compile(r"(?m)^\s*\d+\s*\.\s*")
 
 
-def read_rows(path: Path) -> list[dict[str, str]]:
+def parse_claims(row: dict[str, str]) -> list[str]:
+    """Parse optional claims supplied as JSON, newline, or ``||`` separated text."""
+    raw_claims = next(
+        (
+            (row.get(column) or "").strip()
+            for column in ("claims", "patent_claims", "claim")
+            if (row.get(column) or "").strip()
+        ),
+        "",
+    )
+    if not raw_claims:
+        return []
+    if raw_claims.startswith("["):
+        try:
+            parsed = json.loads(raw_claims)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"Invalid JSON claims for {row.get('publication_number')}") from error
+        if not isinstance(parsed, list):
+            raise ValueError(f"Claims must be a JSON list for {row.get('publication_number')}")
+        return [str(claim).strip() for claim in parsed if str(claim).strip()]
+    if "||" in raw_claims:
+        return [claim.strip() for claim in raw_claims.split("||") if claim.strip()]
+    normalized = raw_claims.replace("\r\n", "\n").strip()
+    starts = list(_CLAIM_START.finditer(normalized))
+    if not starts:
+        return [normalized]
+    return [
+        normalized[start.end():(starts[index + 1].start() if index + 1 < len(starts) else len(normalized))].strip()
+        for index, start in enumerate(starts)
+        if normalized[start.end():(starts[index + 1].start() if index + 1 < len(starts) else len(normalized))].strip()
+    ]
+
+
+def read_rows(path: Path) -> list[dict[str, Any]]:
+    csv.field_size_limit(sys.maxsize)
     with path.open(newline="", encoding="utf-8-sig") as csv_file:
         reader = csv.DictReader(csv_file)
         required = {"publication_number", "title", "abstract"}
@@ -38,6 +78,7 @@ def read_rows(path: Path) -> list[dict[str, str]]:
                         "patent_id": patent_id,
                         "title": title[:500],
                         "abstract": abstract,
+                        "claims": parse_claims(row),
                     }
                 )
         return rows
@@ -51,14 +92,17 @@ async def import_rows(path: Path, batch_size: int) -> int:
     async with AsyncSessionLocal() as session:
         for start in range(0, len(rows), batch_size):
             batch = rows[start : start + batch_size]
-            searchable_texts = [f"{row['title']}\n{row['abstract']}" for row in batch]
+            searchable_texts = [
+                "\n".join([row["title"], row["abstract"], *row["claims"]])
+                for row in batch
+            ]
             vectors = embedding_engine.embed_batch(searchable_texts)
             values = [
                 {
                     "patent_id": row["patent_id"],
                     "title": row["title"],
                     "abstract": row["abstract"],
-                    "claims": [],
+                    "claims": row["claims"],
                     "category": "CSV Import",
                     "searchable_text": text,
                     "embedding": vector,

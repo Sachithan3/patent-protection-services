@@ -35,14 +35,14 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - EMBEDDING_MODEL=all-MiniLM-L6-v2
-      - EMBEDDING_BATCH_SIZE=32
+      - EMBEDDING_BATCH_SIZE=128
       - EMBEDDING_VECTOR_DIMENSION=384
       - HF_HOME=/tmp/huggingface
       - SENTENCE_TRANSFORMERS_HOME=/tmp/sentence-transformers
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - API_RELOAD=false
-      - SEED_DATA_PATH=data/seed_patents.json
+      - SEED_DATA_PATH=data/Patents_data_withclaims.csv
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=gemini-3.5-flash-lite
       - LLM_MAX_OUTPUT_TOKENS=4096

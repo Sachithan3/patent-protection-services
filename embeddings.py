@@ -46,7 +46,11 @@ class EmbeddingEngine:
         normalized = self._normalize_vector(embedding)
         return normalized.tolist()
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(
+        self,
+        texts: List[str],
+        batch_size: int = 32,
+    ) -> List[List[float]]:
         """
         Convert multiple text strings to normalized embedding vectors.
 
@@ -65,7 +69,12 @@ class EmbeddingEngine:
         if not all(isinstance(t, str) and t for t in texts):
             raise ValueError("All items in texts list must be non-empty strings")
 
-        embeddings = self.model.encode(texts, convert_to_numpy=True)
+        embeddings = self.model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+        )
         normalized_embeddings = np.array(
             [self._normalize_vector(emb) for emb in embeddings]
         )

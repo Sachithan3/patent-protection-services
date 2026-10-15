@@ -53,7 +53,7 @@ async function analyze() {
     const response = await fetch('/api/v1/analyze?top_k=6', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_draft:draft})});
     const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'Analysis could not be completed.');
     $('results').classList.remove('hidden'); $('result-summary').textContent = `${data.matching_patents.length} related records`;
-    $('matches').innerHTML = data.matching_patents.map((p) => `<article class="match"><span class="score">${Math.round((p.cosine_similarity || 0) * 100)}% signal</span><span class="id">${escapeHtml(p.patent_id)}</span><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.abstract)}</p></article>`).join('');
+    $('matches').innerHTML = data.matching_patents.map((p) => `<article class="match"><span class="score">${p.evidence_type === 'title_abstract' ? `${Math.round(p.claim_overlap_score || 0)}% technical evidence` : `${Math.round(p.claim_overlap_score || 0)}% claim evidence`}</span><span class="id">${escapeHtml(p.patent_id)}</span><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.abstract)}</p><small>Semantic discovery signal: ${Math.round((p.cosine_similarity || 0) * 100)}%</small></article>`).join('');
     renderFinalReport(data);
     $('results').scrollIntoView({behavior:'smooth', block:'start'});
   } catch (error) { $('error').textContent = error.message; } finally { $('analyze').disabled = false; $('analyze').firstChild.textContent = 'Find related patents '; }

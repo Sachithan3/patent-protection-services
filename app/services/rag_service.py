@@ -28,6 +28,16 @@ def format_retrieved_context(top_patents: Sequence[Mapping[str, Any]]) -> str:
                     f"Title: {patent.get('title', 'UNKNOWN')}",
                     f"Category: {patent.get('category', 'UNKNOWN')}",
                     f"Abstract: {patent.get('abstract', '')}",
+                    f"Retrieval semantic signal: {float(patent.get('cosine_similarity', 0.0)) * 100:.1f}/100",
+                    f"Evidence type: {patent.get('evidence_type', 'unknown')}",
+                    f"Evidence score: {float(patent.get('claim_overlap_score', 0.0)):.1f}/100",
+                    f"Indexed feature coverage: {float(patent.get('feature_coverage', 0.0)):.1f}/100",
+                    "Matched claim evidence:",
+                    "\n".join(
+                        f"  Claim {item.get('claim_number')}: "
+                        f"{item.get('score', 0):.1f}/100 — {item.get('claim', '')}"
+                        for item in patent.get("matched_claims", [])
+                    ) or "  No claim-level match passed the evidence threshold.",
                     "Claims:",
                     claim_lines or "  No claims supplied.",
                 ]

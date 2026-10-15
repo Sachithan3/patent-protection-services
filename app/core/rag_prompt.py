@@ -40,12 +40,21 @@ Return valid JSON only, with exactly this structure:
 }
 
 Risk guidance:
-- HIGH: retrieved claim elements substantially read on the user draft based on the supplied text.
-- MEDIUM: meaningful technical overlap exists, but one or more claim elements are uncertain or absent.
+- HIGH: multiple required claim elements are supported by the user draft and the supplied evidence.
+- MEDIUM: meaningful technical overlap exists, but one or more required claim elements are uncertain or absent.
 - LOW: only broad conceptual similarity or no meaningful claim overlap is supported.
 - risk_score must be an integer from 0 to 100, where 0 is minimal supported risk and 100 is
-  the strongest supported preliminary overlap. Use the factors to explain the score; do not
-  treat cosine similarity alone as infringement evidence.
+  the strongest supported preliminary overlap. It is not a probability of infringement.
+- Treat "Evidence score" as the primary numeric signal. When evidence type is "claim",
+  it reflects claim-element overlap. When evidence type is "title_abstract", it reflects
+  only technical similarity and must not be described as claim overlap.
+- Treat
+  "Retrieval semantic signal" as discovery evidence only; never use it by itself to claim
+  infringement risk.
+- Explain which claim elements are present, which are missing, and which are merely
+  conceptually related. Reports must differ when these evidence patterns differ.
+- Include the supplied risk-score model and basis in the final summary when claims are
+  unavailable; do not describe a title/abstract score as claim overlap.
 - Use weights that add up to 100 across the four risk factors. When retrieved claims are empty
   or incomplete, reduce evidence_completeness and state that the score is not legally conclusive.
 - Compare retrieved patents against one another, but do not infer relationships or claim scope

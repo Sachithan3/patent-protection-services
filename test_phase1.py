@@ -4,7 +4,9 @@ ClaimGuard AI Phase 1 - Integration Test Suite
 Tests core functionality without heavy model downloads in test environment.
 """
 
-import json
+import csv
+import re
+import sys
 from pathlib import Path
 
 
@@ -14,47 +16,32 @@ def test_seed_data_structure():
     print("TEST 1: Seed Data Structure Validation")
     print("=" * 70)
 
-    seed_file = Path("data/seed_patents.json")
+    seed_file = Path("data/Patents_data_withclaims.csv")
     
     if not seed_file.exists():
-        print("❌ FAILED: data/seed_patents.json not found")
+        print("❌ FAILED: data/Patents_data_withclaims.csv not found")
         return False
 
-    with open(seed_file, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    # Verify top-level structure
-    required_keys = {"version", "generated_for", "total_patents", "patents"}
-    if not all(key in data for key in required_keys):
-        print(f"❌ FAILED: Missing required keys. Expected {required_keys}")
+    csv.field_size_limit(sys.maxsize)
+    with seed_file.open(newline="", encoding="utf-8-sig") as f:
+        rows = list(csv.DictReader(f))
+    required_keys = {"publication_number", "title", "abstract", "claims"}
+    if not rows or not required_keys.issubset(rows[0]):
+        print(f"❌ FAILED: CSV missing required columns: {required_keys}")
         return False
-    print(f"✓ Top-level structure valid")
-
-    # Verify patent count
-    if data["total_patents"] != len(data["patents"]):
-        print(f"❌ FAILED: total_patents mismatch")
+    if any(not (row.get("claims") or "").strip() for row in rows):
+        print("❌ FAILED: One or more patents have no claims")
         return False
-    print(f"✓ Patent count: {data['total_patents']}")
 
-    # Verify each patent
-    required_patent_keys = {"patent_id", "title", "abstract", "claims", "category"}
-    for i, patent in enumerate(data["patents"]):
-        if not all(key in patent for key in required_patent_keys):
-            print(f"❌ FAILED: Patent {i} missing required fields")
-            return False
-        
-        if not isinstance(patent["claims"], list) or len(patent["claims"]) == 0:
-            print(f"❌ FAILED: Patent {i} has invalid claims")
-            return False
-
-    print(f"✓ All {len(data['patents'])} patents have valid structure")
+    print(f"✓ CSV structure valid with {len(rows)} claim-bearing patents")
     
     # Print patent summary
     print("\nPatent Summary:")
-    for patent in data["patents"]:
-        print(f"  • {patent['patent_id']} | {patent['category']}")
+    for patent in rows[:5]:
+        claim_count = len(re.findall(r"(?m)^\s*\d+\s*\.\s*", patent["claims"]))
+        print(f"  • {patent['publication_number']}")
         print(f"    Title: {patent['title'][:70]}...")
-        print(f"    Claims: {len(patent['claims'])}")
+        print(f"    Claims: {claim_count or 1}")
 
     return True
 

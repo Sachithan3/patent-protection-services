@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_vector_dimension: int = 384
-    embedding_batch_size: int = 32
+    embedding_batch_size: int = 128
 
     api_host: str = "0.0.0.0"
     api_port: int = 8000
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
 
-    seed_data_path: str = "data/seed_patents.json"
+    seed_data_path: str = "data/Patents_data_withclaims.csv"
     gemini_api_key: str | None = Field(default=None, repr=False)
     gemini_model: str = "gemini-3.5-flash-lite"
     llm_temperature: float = 0.1

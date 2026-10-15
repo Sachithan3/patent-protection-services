@@ -75,13 +75,11 @@ commit real passwords or API keys.
 docker ps | grep claimguard-pgvector
 ```
 
-### 3. Generate Seed Data
+### 3. Patent Dataset
 
-```bash
-python generate_seed.py
-```
-
-**Output:** `data/seed_patents.json` with 5 realistic patents
+The application uses `data/Patents_data_withclaims.csv`, which contains publication
+number, title, abstract, and multiline numbered patent claims. The database startup
+loader parses the claim numbers and embeds the title, abstract, and claims together.
 
 ### 4. Start the RAG API
 
@@ -132,7 +130,7 @@ cloudproj/
 │   ├── services/                 # Retrieval and LLM orchestration
 │   └── api/                      # FastAPI route handlers
 ├── data/
-│   └── seed_patents.json         # Generated patent dataset
+│   └── Patents_data_withclaims.csv # Claim-bearing patent dataset
 ├── logs/                         # Application logs
 ├── .env                          # Environment configuration
 ├── .env.template                 # Configuration template
@@ -160,40 +158,11 @@ python generate_seed.py && \
 python embeddings.py
 ```
 
-## 📊 Seed Data Contents
+## 📊 Patent Dataset Contents
 
-### 5 Production-Grade Patents
-
-1. **US-2023-001456** | Autonomous Vehicle Path Planning
-   - Category: Autonomous Systems
-   - 3 Claims | Abstract + Implementation Details
-
-2. **US-2023-008934** | Post-Quantum Cryptographic Signature Scheme
-   - Category: Cryptography
-   - 3 Claims | Lattice-based security
-
-3. **US-2023-015678** | Smart Grid Demand Response System
-   - Category: Smart Grid
-   - 3 Claims | Federated learning edge computing
-
-4. **US-2023-022401** | Real-Time 3D Object Detection
-   - Category: Computer Vision
-   - 3 Claims | Event cameras + sparse CNNs
-
-5. **US-2023-031847** | Hierarchical Vector Database
-   - Category: Vector Databases
-   - 3 Claims | Billion-scale ANNS queries
-
-### Data Structure
-```json
-{
-  "patent_id": "US-2023-001456",
-  "title": "...",
-  "abstract": "...",
-  "claims": ["claim1", "claim2", ...],
-  "category": "Autonomous Systems"
-}
-```
+The CSV contains 10,000 patent records. Each row includes a publication number,
+title, abstract, and multiline numbered claims. Claims are converted into a list
+before indexing and are available to the claim-level scoring and grounded report.
 
 ## 🔬 Vector Embedding Engine
 
@@ -277,7 +246,7 @@ Request:
 The response contains:
 
 - Retrieved patents ordered by pgvector cosine distance
-- Cosine similarity scores
+- Separate semantic discovery signals and claim-overlap evidence scores
 - Patent claims supplied to the LLM
 - A structured JSON infringement report
 
@@ -287,10 +256,15 @@ The report is constrained to retrieved claims and includes risk rating, overlapp
 
 1. Validate the draft with Pydantic.
 2. Encode the draft using `all-MiniLM-L6-v2`.
-3. Query PostgreSQL using pgvector `<=>` cosine distance.
-4. Format only retrieved patent metadata and numbered claims as context.
-5. Send the grounded prompt to Gemini `gemini-3.5-flash-lite`.
-7. Return retrieval scores and the structured report through FastAPI.
+3. Retrieve an expanded candidate set using pgvector cosine distance.
+4. Rerank candidates against individual claims using claim-level semantic and lexical evidence.
+5. Format matched claim evidence, missing evidence, and separate discovery signals as context.
+6. Send the grounded prompt to Gemini `gemini-3.5-flash-lite`.
+7. Return claim-overlap risk and semantic discovery signals through FastAPI.
+
+The `risk_score` is a bounded preliminary claim-overlap evidence score, not a probability
+of infringement. A high cosine similarity without supported claim elements should not
+produce a high risk score.
 
 ## 📚 Next Steps (Phase 3)
 
