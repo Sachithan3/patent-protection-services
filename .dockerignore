@@ -16,6 +16,7 @@ build/
 # Virtual environments
 myenv/
 venv/
+.venv/
 env/
 .env
 
@@ -30,7 +31,7 @@ env/
 Thumbs.db
 
 # Data & Logs
-data/seed_patents.json
+data/
 logs/
 *.log
 

@@ -28,8 +28,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the embedding model so startup does not depend on the
 # Hugging Face network at runtime and cold starts stay fast.
-ENV HF_HOME=/opt/hf-cache \
-    SENTENCE_TRANSFORMERS_HOME=/opt/st-cache
+ENV HF_HOME=/app/.hf-cache \
+    SENTENCE_TRANSFORMERS_HOME=/app/.st-cache
 RUN python -c "from sentence_transformers import SentenceTransformer; \
 SentenceTransformer('all-MiniLM-L6-v2')"
 
