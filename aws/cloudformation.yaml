@@ -24,6 +24,12 @@ Parameters:
     Type: String
     Default: t3.micro
     AllowedValues: [t3.micro, t3.small, t3.medium]
+  DbPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 128
+    Description: Master password for the ClaimGuard RDS instance. Supply at deploy time; never commit it.
 
 Conditions:
   DeployApp: !Equals [!Ref DeployApp, 'true']
@@ -127,7 +133,7 @@ Resources:
     Properties:
       Name: claimguard/db-credentials
       Description: ClaimGuard RDS PostgreSQL credentials
-      SecretString: '{"username":"claimguard_user","password":"***REMOVED***"}'
+      SecretString: !Sub '{"username":"claimguard_user","password":"${DbPassword}"}'
 
   DBInstance:
     Type: AWS::RDS::DBInstance
@@ -140,7 +146,7 @@ Resources:
       StorageType: gp3
       DBName: claimguard_db
       MasterUsername: claimguard_user
-      MasterUserPassword: '***REMOVED***'
+      MasterUserPassword: !Ref DbPassword
       VPCSecurityGroups:
         - !Ref DBSecurityGroup
       DBSubnetGroupName: !Ref DBSubnetGroup

@@ -48,6 +48,15 @@ aws secretsmanager put-secret-value \
 
 ## Step 2: Deploy infrastructure + data tier
 
+The RDS master password is a **CloudFormation parameter** (`DbPassword`, with
+`NoEcho`), so it is never stored in the template or the repository. Generate one
+and keep it in your shell / password manager:
+
+```bash
+# 40+ char alphanumeric password (RDS forbids /  "  @ and space)
+export DB_PASSWORD=$(openssl rand -base64 36 | tr -d '/+=\n')
+```
+
 ```bash
 aws cloudformation create-stack \
   --stack-name claimguard-ai \
@@ -56,6 +65,7 @@ aws cloudformation create-stack \
   --parameters \
     ParameterKey=Environment,ParameterValue=production \
     ParameterKey=DbInstanceClass,ParameterValue=db.t3.micro \
+    ParameterKey=DbPassword,ParameterValue="$DB_PASSWORD" \
     ParameterKey=DeployApp,ParameterValue=false
 
 aws cloudformation wait stack-create-complete --stack-name claimguard-ai
@@ -63,6 +73,10 @@ aws cloudformation wait stack-create-complete --stack-name claimguard-ai
 
 > `DeployApp=false` is used because the EC2 host pulls an image that must exist
 > in ECR first. Set it to `true` in the second phase (Step 5).
+>
+> `DbPassword` must be re-supplied on **every** `update-stack` (Step 5).
+> CloudFormation would otherwise reset the database password back to whatever the
+> template specifies, so the template deliberately carries no default.
 
 ## Step 3: Build and push the container image (cloud-side)
 
@@ -103,6 +117,7 @@ aws cloudformation update-stack \
   --parameters \
     ParameterKey=Environment,ParameterValue=production \
     ParameterKey=DbInstanceClass,ParameterValue=db.t3.micro \
+    ParameterKey=DbPassword,ParameterValue="$DB_PASSWORD" \
     ParameterKey=DeployApp,ParameterValue=true \
     ParameterKey=AppInstanceType,ParameterValue=t3.micro
 
