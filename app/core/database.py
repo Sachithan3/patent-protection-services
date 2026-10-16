@@ -49,7 +49,12 @@ async def seed_patents(session: AsyncSession) -> int:
 
     seed_path = Path(settings.seed_data_path)
     if not seed_path.exists():
-        raise FileNotFoundError(f"Seed data file does not exist: {seed_path}")
+        logger.warning(
+            "Seed data file does not exist: %s. Skipping automatic seeding; "
+            "run the ingestion utility to populate the database.",
+            seed_path,
+        )
+        return 0
 
     if seed_path.suffix.lower() == ".csv":
         with seed_path.open(newline="", encoding="utf-8-sig") as seed_file:
