@@ -120,10 +120,13 @@ Resources:
       GroupDescription: ClaimGuard RDS security group
       VpcId: !Ref VPC
       SecurityGroupIngress:
+        # PostgreSQL is reachable only from the application host inside this
+        # VPC. Data ingestion also runs on that host (see DEPLOY.md Step 4), so
+        # the database is never exposed to the public internet.
         - IpProtocol: tcp
           FromPort: 5432
           ToPort: 5432
-          CidrIp: 0.0.0.0/0
+          SourceSecurityGroupId: !Ref AppSecurityGroup
       Tags:
         - Key: Name
           Value: claimguard-db-sg

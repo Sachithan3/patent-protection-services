@@ -5,15 +5,16 @@
 ```
 Users → EC2 (Docker: FastAPI on :80 → :8000, Elastic IP)
               ↓ (VPC-internal, private DNS)
-        RDS PostgreSQL 16 + pgvector (db.t3.micro, publicly accessible)
+        RDS PostgreSQL 16 + pgvector (db.t3.micro, VPC-only)
               ↑
         Secrets Manager (DB credentials + Gemini key)
         S3 (CSV data ingestion)
         ECR (container image)
 ```
 
-Ingestion runs as a **CodeBuild** job (S3 CSV → embeddings → RDS), because the
-RDS endpoint's port 5432 is not reachable from the local workstation.
+The database security group allows **port 5432 only from the application host's
+security group** — there is no `0.0.0.0/0` ingress. Ingestion is therefore an
+*in-VPC* operation (see Step 4), not a job against a public endpoint.
 
 ### Why EC2 instead of App Runner
 
@@ -31,12 +32,12 @@ gateway to reach the internet or the Gemini API.
 | EC2 `t3.micro` + Elastic IP | Application host (Docker container) |
 | Security group (port 80 open) | Public HTTP access |
 | IAM role/profile | ECR pull, Secrets Manager, S3, CloudWatch Logs |
-| RDS `db.t3.micro` PostgreSQL 16.15 + pgvector | Vector store |
+| RDS `db.t3.micro` PostgreSQL 16.15 + pgvector | Vector store — reachable only from the app host SG |
 | ECR `claimguard-api` | Container image registry |
 | Secrets Manager | DB credentials + Gemini API key |
 | S3 `claimguard-data-<acct>-<region>` | CSV data + CodeBuild source |
 | CodeBuild `claimguard-build` | Builds/pushes the image |
-| CodeBuild `claimguard-ingest` | Loads patents into RDS |
+| CodeBuild `claimguard-ingest` | Legacy loader — superseded by the in-VPC method in Step 4 |
 
 ## Step 1: Set the Gemini API key
 
@@ -100,12 +101,52 @@ aws s3 cp /tmp/claimguard-src.zip s3://$BUCKET/source/claimguard-src.zip
 aws codebuild start-build --project-name claimguard-build
 ```
 
-## Step 4: Load patent data
+## Step 4: Load patent data (must run inside the VPC)
+
+`DBSecurityGroup` accepts 5432 **only** from the app host's security group, so
+ingestion cannot run from a laptop or from a non-VPC CodeBuild job. (VPC-enabled
+CodeBuild would need a NAT gateway — an internet gateway can't be used, because
+CodeBuild ENIs cannot be assigned public IPs.) Embedding the corpus also needs far
+more RAM than the `t3.micro` app host has.
+
+Temporarily resize the host, run the job there, then resize back:
 
 ```bash
+INSTANCE_ID=<app instance id>
+BUCKET=claimguard-data-<acct>-<region>
+IMAGE=<acct>.dkr.ecr.ap-southeast-2.amazonaws.com/claimguard-api:latest
+
+# 1. give the host enough RAM (the Elastic IP keeps the public address)
+aws ec2 stop-instances --instance-ids $INSTANCE_ID && aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID
+aws ec2 modify-instance-attribute --instance-id $INSTANCE_ID --instance-type t3.medium
+aws ec2 start-instances --instance-ids $INSTANCE_ID && aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+# 2. stage the inputs
 aws s3 cp data/Patents_data_withclaims.csv s3://$BUCKET/
-aws codebuild start-build --project-name claimguard-ingest
+aws s3 cp aws/ingest_data.py s3://$BUCKET/source/aws/ingest_data.py
 ```
+
+```bash
+# 3. run ingestion on the host in its own container (the API is left alone)
+aws ssm start-session --target $INSTANCE_ID      # opens a shell on the host
+# --- on the host ---
+aws s3 cp s3://$BUCKET/source/aws/ingest_data.py /tmp/ingest.py
+docker run --rm \
+  -e AWS_DEFAULT_REGION=ap-southeast-2 -e DB_SECRET_NAME=claimguard/db-credentials \
+  -e DATABASE_PORT=5432 -e DATABASE_NAME=claimguard_db -e DATA_BUCKET=$BUCKET \
+  -e DATABASE_HOST=$(aws cloudformation describe-stacks --stack-name claimguard-ai \
+      --query 'Stacks[0].Outputs[?OutputKey==`RDSEndpoint`].OutputValue' --output text) \
+  -v /tmp/ingest.py:/app/ingest_data.py $IMAGE python ingest_data.py
+```
+
+```bash
+# 4. resize back to the free-tier size
+aws ec2 stop-instances --instance-ids $INSTANCE_ID && aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID
+aws ec2 modify-instance-attribute --instance-id $INSTANCE_ID --instance-type t3.micro
+aws ec2 start-instances --instance-ids $INSTANCE_ID && aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+```
+
+> The job is idempotent — it exits without inserting if `patents` already has rows.
 
 ## Step 5: Deploy the application host
 
