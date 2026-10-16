@@ -1,63 +1,91 @@
-# ClaimGuard AI - Autonomous IP Discovery & Patent Infringement Engine
+# ClaimGuard AI
 
-**Phase 2: Retrieval-Augmented Patent Infringement Analysis**
+ClaimGuard AI is a FastAPI service for preliminary patent-overlap analysis. It
+uses sentence-transformer embeddings, PostgreSQL with pgvector, claim-level
+retrieval, and grounded Gemini report generation.
 
-## 🎯 Project Objective
+> **Important:** Results are technical screening signals for preliminary review.
+> They are not a legal opinion, a probability of infringement, or a substitute
+> for qualified patent counsel.
 
-ClaimGuard AI is a LegalTech platform for preliminary patent infringement analysis. The current implementation combines semantic embeddings, PostgreSQL/pgvector cosine retrieval, and grounded Gemini report generation.
+## Run on a new computer
 
-## 🏗️ Architecture Overview
+The following instructions are the recommended local-development setup. They
+assume Linux or macOS. Windows users can run the same commands in WSL, or use
+the PowerShell activation command shown below.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  FastAPI Application                     │
-├─────────────────────────────────────────────────────────┤
-│  Draft → EmbeddingEngine → pgvector cosine retrieval     │
-│  Retrieved claims → strict RAG prompt → Gemini            │
-│  PostgreSQL Patent Store ← automatic JSON seed loading    │
-└─────────────────────────────────────────────────────────┘
-```
+### 1. Install prerequisites
 
-## 🛠️ Tech Stack
+Install:
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Backend Framework** | FastAPI | 0.109.0 |
-| **Web Server** | Uvicorn | 0.27.0 |
-| **Embeddings** | sentence-transformers | 2.2.2 |
-| **Database** | PostgreSQL + pgvector | Latest |
-| **ORM** | SQLAlchemy | 2.0.25 |
-| **ML Backend** | PyTorch | 2.2.0 |
-| **Config Management** | Pydantic | 2.5.0 |
-| **LLM** | Google Gemini | `gemini-3.5-flash-lite` |
+- Git
+- Python 3.11 or newer
+- Docker Desktop or Docker Engine with the Docker CLI
+- At least 8 GB RAM (the embedding model is downloaded and loaded at startup)
+- A Google Gemini API key for generated analysis reports
 
-## 📦 Installation
-
-### Prerequisites
-- Python 3.8+
-- Docker & Docker Compose
-- 8GB+ RAM (for embedding model)
-- 2GB+ free disk space
-
-### 1. Clone & Setup Environment
+Check that the tools are available:
 
 ```bash
-cd /path/to/cloudproj
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+git --version
+python3 --version
+docker --version
 ```
 
-### 2. Launch PostgreSQL with pgvector
+### 2. Clone the repository
+
+```bash
+git clone https://github.com/Sachithan3/patent-protection-services.git
+cd patent-protection-services
+```
+
+Confirm that the patent dataset is present:
+
+```bash
+test -f data/Patents_data_withclaims.csv && echo "Dataset found"
+```
+
+### 3. Create a Python environment and install dependencies
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+On Windows PowerShell, activate the environment with:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 4. Configure environment variables
+
+Create a local environment file from the template:
 
 ```bash
 cp .env.template .env
-# Edit .env and set DATABASE_PASSWORD and GEMINI_API_KEY.
+```
 
+Open `.env` and set:
+
+```dotenv
+DATABASE_PASSWORD=choose_a_local_database_password
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Keep `.env` local. Do not commit database passwords or API keys.
+
+### 5. Start PostgreSQL with pgvector
+
+Start the database container using the same password configured in `.env`:
+
+```bash
 docker run \
   --name claimguard-pgvector \
   -e POSTGRES_USER=claimguard_user \
-  -e POSTGRES_PASSWORD=your_local_database_password \
+  -e POSTGRES_PASSWORD=choose_a_local_database_password \
   -e POSTGRES_DB=claimguard_db \
   -p 5433:5432 \
   -v pgvector_data:/var/lib/postgresql/data \
@@ -65,257 +93,194 @@ docker run \
   ankane/pgvector:latest
 ```
 
-Use the same values for `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`
-in `.env` as `DATABASE_USER`, `DATABASE_PASSWORD`, and `DATABASE_NAME`.
-The password shown above is only a placeholder for local development; do not
-commit real passwords or API keys.
+Wait until PostgreSQL is ready:
 
-**Verify:**
 ```bash
-docker ps | grep claimguard-pgvector
+until docker exec claimguard-pgvector pg_isready -U claimguard_user -d claimguard_db >/dev/null 2>&1; do
+  sleep 2
+done
+echo "PostgreSQL is ready"
 ```
 
-### 3. Patent Dataset
+If the container already exists, start it instead:
 
-The application uses `data/Patents_data_withclaims.csv`, which contains publication
-number, title, abstract, and multiline numbered patent claims. The database startup
-loader parses the claim numbers and embeds the title, abstract, and claims together.
+```bash
+docker start claimguard-pgvector
+```
 
-### 4. Start the RAG API
+The application connects to `localhost:5433` using the database settings in
+`.env`.
 
-Copy `.env.template` to `.env`, then set `GEMINI_API_KEY` for Gemini:
+### 6. Start the API
+
+From the repository root, with the virtual environment activated:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-The application startup creates the pgvector table and automatically embeds the five JSON seed patents when the database is empty.
+The first startup may take several minutes because it downloads the
+`all-MiniLM-L6-v2` embedding model and indexes the CSV dataset. The application
+automatically:
 
-Open Swagger UI at [http://localhost:8000/docs](http://localhost:8000/docs).
+1. Enables the PostgreSQL `vector` extension.
+2. Creates the required database tables.
+3. Loads `data/Patents_data_withclaims.csv` when the database is empty.
+4. Generates and stores embeddings for the imported patents.
 
-### 6. Analyze a Draft
+Leave this terminal running while using the application.
+
+### 7. Verify the installation
+
+In a second terminal:
+
+```bash
+cd patent-protection-services
+source .venv/bin/activate
+curl http://localhost:8000/api/v1/health
+```
+
+Open these URLs in a browser:
+
+- Dashboard: <http://localhost:8000/app/>
+- Swagger API documentation: <http://localhost:8000/docs>
+- Health check: <http://localhost:8000/api/v1/health>
+
+The health response should report `"status": "healthy"` after the database and
+embedding model are ready.
+
+## Try an analysis
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/analyze \
   -H "Content-Type: application/json" \
-  -d '{"user_draft":"An autonomous indoor drone uses LiDAR and event cameras to build a sparse 3D occupancy map and uses reinforcement learning for collision-free path planning on an edge FPGA."}'
+  -d '{
+    "user_draft": "An autonomous indoor drone uses LiDAR and event cameras to build a sparse 3D occupancy map and uses reinforcement learning for collision-free path planning on an edge FPGA."
+  }'
 ```
 
-### 7. Run the RAG Terminal Demo
+The request must contain a technical draft with at least 20 characters. The
+response includes retrieved patents, claim-overlap evidence, technical
+differences, design-around suggestions, and a grounded Gemini report.
+
+## Useful commands
+
+Run the terminal RAG demo:
 
 ```bash
 python demo_rag.py
 ```
 
-### 8. Validate Embedding Engine
+Validate the embedding engine:
 
 ```bash
 python embeddings.py
 ```
 
-**Verification Points:**
-- ✓ Vector dimension: 384
-- ✓ L2 norm: 1.0 (normalized)
-- ✓ Batch processing: OK
-- ✓ Similarity computation: OK
-
-## 📋 File Structure
-
-```
-cloudproj/
-├── app/                          # FastAPI application package
-│   ├── __init__.py
-│   ├── core/                     # Config, database, prompts
-│   ├── models/                   # SQLAlchemy + pgvector models
-│   ├── services/                 # Retrieval and LLM orchestration
-│   └── api/                      # FastAPI route handlers
-├── data/
-│   └── Patents_data_withclaims.csv # Claim-bearing patent dataset
-├── logs/                         # Application logs
-├── .env                          # Environment configuration
-├── .env.template                 # Configuration template
-├── .gitignore                    # Git ignore rules
-├── requirements.txt              # Python dependencies
-├── generate_seed.py              # Seed data generator script
-├── embeddings.py                 # Vector embedding engine
-├── demo_rag.py                   # End-to-end terminal demonstration
-├── README.md                     # This file
-└── test_phase1.py                # Structural validation tests
-```
-
-## 🚀 Quick Start
+Stop the database without deleting its data:
 
 ```bash
-# Full setup (one-liner with proper order)
-cp .env.template .env && \
-pip install -r requirements.txt && \
-docker run --name claimguard-pgvector \
-  -e POSTGRES_USER=claimguard_user \
-  -e POSTGRES_PASSWORD=your_local_database_password \
-  -e POSTGRES_DB=claimguard_db \
-  -p 5433:5432 -d ankane/pgvector:latest && \
-python generate_seed.py && \
-python embeddings.py
+docker stop claimguard-pgvector
 ```
 
-## 📊 Patent Dataset Contents
+Start it again later:
 
-The CSV contains 10,000 patent records. Each row includes a publication number,
-title, abstract, and multiline numbered claims. Claims are converted into a list
-before indexing and are available to the claim-level scoring and grounded report.
-
-## 🔬 Vector Embedding Engine
-
-### EmbeddingEngine API
-
-```python
-from embeddings import EmbeddingEngine
-
-# Initialize
-engine = EmbeddingEngine(model_name="all-MiniLM-L6-v2")
-
-# Single embedding
-vector = engine.embed_text("Autonomous vehicle patent claims")
-# Returns: List[float] of length 384
-
-# Batch embedding
-vectors = engine.embed_batch([
-    "Patent text 1",
-    "Patent text 2",
-    "Patent text 3"
-])
-# Returns: List[List[float]]
-
-# Get vector dimension
-dim = engine.get_vector_dimension()
-# Returns: 384
-```
-
-### Properties
-- **Model:** sentence-transformers/all-MiniLM-L6-v2
-- **Vector Dimension:** 384
-- **Normalization:** L2 (unit length)
-- **Processing:** Batch-optimized
-- **Latency:** ~10-50ms per 32-text batch (CPU)
-
-## 🗄️ Database Configuration
-
-### PostgreSQL Connection
-```
-Host: localhost
-Port: 5433
-User: claimguard_user
-Password: value of DATABASE_PASSWORD in .env
-Database: claimguard_db
-```
-
-### pgvector Extension
-Automatically available in `ankane/pgvector` image. Enable on first use:
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-## ✅ Validation Checklist
-
-- [x] Python dependencies installed
-- [x] PostgreSQL container running on port 5433
-- [x] Seed data generated (5 patents)
-- [x] Embedding engine initialized
-- [x] Vector dimension verified (384)
-- [x] Normalization verified (L2 norm = 1.0)
-- [x] Batch processing validated
-- [x] Similarity computation working
-
-## 🔌 API Endpoints
-
-### `GET /api/v1/health`
-
-Checks PostgreSQL connectivity and verifies that the embedding model produces 384-dimensional vectors.
-
-### `POST /api/v1/analyze`
-
-Request:
-
-```json
-{
-  "user_draft": "Technical product or implementation description",
-  "top_k": 5
-}
-```
-
-The response contains:
-
-- Retrieved patents ordered by pgvector cosine distance
-- Separate semantic discovery signals and claim-overlap evidence scores
-- Patent claims supplied to the LLM
-- A structured JSON infringement report
-
-The report is constrained to retrieved claims and includes risk rating, overlapping patent claims, technical differences, design-around recommendations, limitations, and a final preliminary verdict summary.
-
-## 🧠 RAG Execution Flow
-
-1. Validate the draft with Pydantic.
-2. Encode the draft using `all-MiniLM-L6-v2`.
-3. Retrieve an expanded candidate set using pgvector cosine distance.
-4. Rerank candidates against individual claims using claim-level semantic and lexical evidence.
-5. Format matched claim evidence, missing evidence, and separate discovery signals as context.
-6. Send the grounded prompt to Gemini `gemini-3.5-flash-lite`.
-7. Return claim-overlap risk and semantic discovery signals through FastAPI.
-
-The `risk_score` is a bounded preliminary claim-overlap evidence score, not a probability
-of infringement. A high cosine similarity without supported claim elements should not
-produce a high risk score.
-
-## 📚 Next Steps (Phase 3)
-
-- [ ] Patent ingestion endpoints for non-synthetic data
-- [ ] Claim-level embeddings and hybrid lexical retrieval
-- [ ] Authentication and audit logging
-- [ ] Human legal-review workflow
-- [ ] Evaluation dataset and retrieval/grounding metrics
-
-## 🔧 Troubleshooting
-
-### Database Connection Refused
 ```bash
-# Check if container is running
-docker ps | grep claimguard-pgvector
-
-# Restart container if needed
 docker start claimguard-pgvector
 ```
 
-### Model Download Timeout
+Delete the local database and all indexed data:
+
 ```bash
-# Retry with explicit cache
-python -c "from sentence_transformers import SentenceTransformer; \
-    SentenceTransformer('all-MiniLM-L6-v2')"
+docker rm -f claimguard-pgvector
+docker volume rm pgvector_data
 ```
 
-### Permission Denied on Logs Directory
+Only run the deletion commands when a clean database is intended.
+
+## Configuration
+
+The main settings are read from `.env`:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `DATABASE_HOST` | PostgreSQL hostname | `localhost` |
+| `DATABASE_PORT` | PostgreSQL port | `5433` |
+| `DATABASE_USER` | PostgreSQL user | `claimguard_user` |
+| `DATABASE_PASSWORD` | PostgreSQL password | required |
+| `DATABASE_NAME` | PostgreSQL database | `claimguard_db` |
+| `EMBEDDING_MODEL` | Sentence-transformer model | `all-MiniLM-L6-v2` |
+| `EMBEDDING_VECTOR_DIMENSION` | pgvector dimension | `384` |
+| `GEMINI_API_KEY` | Gemini credential | required for reports |
+| `GEMINI_MODEL` | Gemini model | `gemini-3.5-flash-lite` |
+| `LLM_MAX_OUTPUT_TOKENS` | Maximum report size | `4096` |
+
+## Troubleshooting
+
+### `docker: command not found`
+
+Install Docker Desktop or Docker Engine, then rerun `docker --version`.
+
+### Database connection refused
+
+Check the container and its logs:
+
 ```bash
-chmod 755 logs/
+docker ps
+docker logs claimguard-pgvector
 ```
 
-## 📖 Documentation
+Confirm that `.env` uses `DATABASE_HOST=localhost`, `DATABASE_PORT=5433`,
+`DATABASE_USER=claimguard_user`, `DATABASE_NAME=claimguard_db`, and the same
+password used when the container was created.
 
-- **[embeddings.py](embeddings.py)** - Embedding engine with inline documentation
-- **[generate_seed.py](generate_seed.py)** - Seed data generator with examples
+### Container name already in use
 
-## 📝 License & Attribution
+If the existing container is the intended local database, run:
 
-ClaimGuard AI | LegalTech Patent Analysis Engine
-Built with FastAPI, sentence-transformers, and pgvector
+```bash
+docker start claimguard-pgvector
+```
 
-## 🤝 Support
+To recreate it, first remove only that named container:
 
-For issues or questions:
-1. Review inline code documentation
-2. Verify Docker container health
-3. Ensure Python 3.8+ compatibility
+```bash
+docker rm -f claimguard-pgvector
+```
 
----
+Then repeat the PostgreSQL startup command.
 
-**Status:** ✅ FastAPI RAG service implemented
+### Embedding model download is slow or times out
 
-The browser dashboard is available at [http://localhost:8000/app/](http://localhost:8000/app/).
+Ensure the computer has internet access and enough disk space, then retry:
+
+```bash
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+```
+
+### Gemini analysis is unavailable
+
+Check that `GEMINI_API_KEY` is set in `.env`, restart Uvicorn, and verify that
+the key has access to the configured `GEMINI_MODEL`.
+
+## Project structure
+
+```text
+.
+├── app/                         FastAPI application and browser dashboard
+├── data/Patents_data_withclaims.csv
+├── embeddings.py                Embedding engine
+├── demo_rag.py                  Terminal RAG demo
+├── docker-compose.yml           Container configuration
+├── Dockerfile                   API image definition
+├── requirements.txt             Python dependencies
+├── .env.template                Local configuration template
+└── PROJECT_DOCUMENTATION.md     Detailed technical documentation
+```
+
+## License and attribution
+
+ClaimGuard AI | LegalTech patent analysis engine
+
+Built with FastAPI, sentence-transformers, PostgreSQL/pgvector, and Google
+Gemini.
