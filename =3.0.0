@@ -1,0 +1,225 @@
+Resolved 22 packages in 10.19s
+Downloading sqlalchemy (1.8MiB)
+   Building pydantic-core==2.14.1
+ Downloaded sqlalchemy
+error: Failed to build `pydantic-core==2.14.1`
+  cause: The build backend returned an error
+  cause: Call to `maturin.build_wheel` failed (exit status: 1)
+
+         [stdout]
+         Rust not found, installing into a temporary directory
+         cargo 1.99.1 (5f94df478 2026-08-27)
+         Running `maturin pep517 build-wheel -i /home/sachithan/.cache/uv/builds-v0/.tmpGb78SD/bin/python --compatibility off`
+
+         [stderr]
+         Python reports SOABI: cpython-314-x86_64-linux-gnu
+         Computed rustc target triple: x86_64-unknown-linux-gnu
+         Installation directory: /home/sachithan/.cache/puccinialin
+         Downloading rustup-init from https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init
+         Downloading rustup-init:   0%|          | 0.00/21.1M [00:00<?, ?B/s]Downloading rustup-init:   0%|          | 98.3k/21.1M [00:00<00:26, 790kB/s]Downloading rustup-init:   1%|          | 180k/21.1M [00:00<00:32, 641kB/s] Downloading rustup-init:   2%|▏         | 377k/21.1M [00:00<00:18, 1.13MB/s]Downloading rustup-init:   2%|▏         | 508k/21.1M [00:00<00:19, 1.05MB/s]Downloading rustup-init:   3%|▎         | 639k/21.1M [00:00<00:18, 1.08MB/s]Downloading rustup-init:   4%|▎         | 754k/21.1M [00:00<00:19, 1.06MB/s]Downloading rustup-init:   4%|▍         | 868k/21.1M [00:00<00:19, 1.06MB/s]Downloading rustup-init:   5%|▍         | 999k/21.1M [00:00<00:20, 1.00MB/s]Downloading rustup-init:   5%|▌         | 1.13M/21.1M [00:01<00:18, 1.06MB/s]Downloading rustup-init:   6%|▌         | 1.26M/21.1M [00:01<00:19, 1.00MB/s]Downloading rustup-init:   7%|▋         | 1.41M/21.1M [00:01<00:17, 1.12MB/s]Downloading rustup-init:   7%|▋         | 1.53M/21.1M [00:01<00:17, 1.11MB/s]Downloading rustup-init:   8%|▊         | 1.65M/21.1M [00:01<00:17, 1.11MB/s]Downloading rustup-init:   8%|▊         | 1.76M/21.1M [00:01<00:18, 1.04MB/s]Downloading rustup-init:   9%|▉         | 1.90M/21.1M [00:01<00:18, 1.07MB/s]Downloading rustup-init:  10%|▉         | 2.02M/21.1M [00:01<00:18, 1.04MB/s]Downloading rustup-init:  10%|█         | 2.12M/21.1M [00:02<00:18, 1.01MB/s]Downloading rustup-init:  11%|█         | 2.23M/21.1M [00:02<00:19, 993kB/s] Downloading rustup-init:  11%|█         | 2.33M/21.1M [00:02<00:18, 1.00MB/s]Downloading rustup-init:  12%|█▏        | 2.44M/21.1M [00:02<00:19, 935kB/s] Downloading rustup-init:  12%|█▏        | 2.56M/21.1M [00:02<00:19, 958kB/s]Downloading rustup-init:  13%|█▎        | 2.65M/21.1M [00:02<00:19, 952kB/s]Downloading rustup-init:  13%|█▎        | 2.75M/21.1M [00:02<00:20, 898kB/s]Downloading rustup-init:  14%|█▎        | 2.87M/21.1M [00:02<00:19, 941kB/s]Downloading rustup-init:  14%|█▍        | 2.97M/21.1M [00:02<00:19, 938kB/s]Downloading rustup-init:  15%|█▍        | 3.10M/21.1M [00:03<00:17, 1.02MB/s]Downloading rustup-init:  15%|█▌        | 3.21M/21.1M [00:03<00:17, 1.04MB/s]Downloading rustup-init:  16%|█▌        | 3.32M/21.1M [00:03<00:17, 1.01MB/s]Downloading rustup-init:  16%|█▋        | 3.44M/21.1M [00:03<00:17, 985kB/s] Downloading rustup-init:  17%|█▋        | 3.60M/21.1M [00:03<00:16, 1.04MB/s]Downloading rustup-init:  18%|█▊        | 3.78M/21.1M [00:03<00:16, 1.06MB/s]Downloading rustup-init:  19%|█▊        | 3.93M/21.1M [00:03<00:15, 1.10MB/s]Downloading rustup-init:  19%|█▉        | 4.05M/21.1M [00:03<00:15, 1.10MB/s]Downloading rustup-init:  20%|█▉        | 4.16M/21.1M [00:04<00:16, 1.05MB/s]Downloading rustup-init:  20%|██        | 4.27M/21.1M [00:04<00:16, 1.03MB/s]Downloading rustup-init:  21%|██        | 4.37M/21.1M [00:04<00:16, 985kB/s] Downloading rustup-init:  21%|██        | 4.48M/21.1M [00:04<00:16, 988kB/s]Downloading rustup-init:  22%|██▏       | 4.59M/21.1M [00:04<00:18, 901kB/s]Downloading rustup-init:  22%|██▏       | 4.70M/21.1M [00:04<00:17, 936kB/s]Downloading rustup-init:  23%|██▎       | 4.82M/21.1M [00:04<00:17, 935kB/s]Downloading rustup-init:  23%|██▎       | 4.92M/21.1M [00:04<00:19, 852kB/s]Downloading rustup-init:  24%|██▍       | 5.03M/21.1M [00:05<00:17, 899kB/s]Downloading rustup-init:  24%|██▍       | 5.13M/21.1M [00:05<00:18, 849kB/s]Downloading rustup-init:  25%|██▌       | 5.29M/21.1M [00:05<00:16, 976kB/s]Downloading rustup-init:  26%|██▌       | 5.41M/21.1M [00:05<00:15, 1.02MB/s]Downloading rustup-init:  26%|██▌       | 5.51M/21.1M [00:05<00:16, 944kB/s] Downloading rustup-init:  27%|██▋       | 5.64M/21.1M [00:05<00:15, 968kB/s]Downloading rustup-init:  27%|██▋       | 5.73M/21.1M [00:05<00:16, 947kB/s]Downloading rustup-init:  28%|██▊       | 5.83M/21.1M [00:05<00:16, 940kB/s]Downloading rustup-init:  28%|██▊       | 5.93M/21.1M [00:05<00:16, 924kB/s]Downloading rustup-init:  29%|██▊       | 6.03M/21.1M [00:06<00:16, 922kB/s]Downloading rustup-init:  29%|██▉       | 6.14M/21.1M [00:06<00:16, 895kB/s]Downloading rustup-init:  30%|██▉       | 6.28M/21.1M [00:06<00:16, 915kB/s]Downloading rustup-init:  30%|███       | 6.37M/21.1M [00:06<00:15, 922kB/s]Downloading rustup-init:  31%|███       | 6.50M/21.1M [00:06<00:14, 1.01MB/s]Downloading rustup-init:  31%|███▏      | 6.61M/21.1M [00:06<00:14, 1.02MB/s]Downloading rustup-init:  32%|███▏      | 6.73M/21.1M [00:06<00:14, 1.01MB/s]Downloading rustup-init:  33%|███▎      | 6.90M/21.1M [00:06<00:12, 1.10MB/s]Downloading rustup-init:  33%|███▎      | 7.03M/21.1M [00:07<00:12, 1.12MB/s]Downloading rustup-init:  34%|███▍      | 7.16M/21.1M [00:07<00:12, 1.10MB/s]Downloading rustup-init:  34%|███▍      | 7.27M/21.1M [00:07<00:12, 1.09MB/s]Downloading rustup-init:  35%|███▌      | 7.41M/21.1M [00:07<00:12, 1.08MB/s]Downloading rustup-init:  36%|███▌      | 7.54M/21.1M [00:07<00:12, 1.08MB/s]Downloading rustup-init:  36%|███▌      | 7.65M/21.1M [00:07<00:13, 1.02MB/s]Downloading rustup-init:  37%|███▋      | 7.77M/21.1M [00:07<00:13, 1.02MB/s]Downloading rustup-init:  37%|███▋      | 7.88M/21.1M [00:07<00:12, 1.05MB/s]Downloading rustup-init:  38%|███▊      | 7.99M/21.1M [00:07<00:12, 1.04MB/s]Downloading rustup-init:  38%|███▊      | 8.11M/21.1M [00:08<00:12, 1.08MB/s]Downloading rustup-init:  39%|███▉      | 8.22M/21.1M [00:08<00:12, 1.01MB/s]Downloading rustup-init:  40%|███▉      | 8.36M/21.1M [00:08<00:11, 1.09MB/s]Downloading rustup-init:  40%|████      | 8.47M/21.1M [00:08<00:12, 1.05MB/s]Downloading rustup-init:  41%|████      | 8.58M/21.1M [00:08<00:12, 1.03MB/s]Downloading rustup-init:  41%|████      | 8.70M/21.1M [00:08<00:11, 1.06MB/s]Downloading rustup-init:  42%|████▏     | 8.81M/21.1M [00:08<00:11, 1.04MB/s]Downloading rustup-init:  42%|████▏     | 8.95M/21.1M [00:08<00:12, 1.01MB/s]Downloading rustup-init:  43%|████▎     | 9.06M/21.1M [00:09<00:12, 1.00MB/s]Downloading rustup-init:  43%|████▎     | 9.17M/21.1M [00:09<00:12, 936kB/s] Downloading rustup-init:  44%|████▍     | 9.29M/21.1M [00:09<00:11, 988kB/s]Downloading rustup-init:  45%|████▍     | 9.40M/21.1M [00:09<00:11, 1.01MB/s]Downloading rustup-init:  45%|████▌     | 9.50M/21.1M [00:09<00:11, 1.01MB/s]Downloading rustup-init:  46%|████▌     | 9.62M/21.1M [00:09<00:11, 964kB/s] Downloading rustup-init:  46%|████▌     | 9.73M/21.1M [00:09<00:11, 960kB/s]Downloading rustup-init:  47%|████▋     | 9.90M/21.1M [00:09<00:09, 1.12MB/s]Downloading rustup-init:  47%|████▋     | 10.0M/21.1M [00:09<00:09, 1.11MB/s]Downloading rustup-init:  48%|████▊     | 10.1M/21.1M [00:10<00:09, 1.11MB/s]Downloading rustup-init:  49%|████▊     | 10.2M/21.1M [00:10<00:10, 1.02MB/s]Downloading rustup-init:  49%|████▉     | 10.4M/21.1M [00:10<00:10, 1.00MB/s]Downloading rustup-init:  50%|████▉     | 10.5M/21.1M [00:10<00:09, 1.08MB/s]Downloading rustup-init:  50%|█████     | 10.6M/21.1M [00:10<00:10, 1.02MB/s]Downloading rustup-init:  51%|█████     | 10.7M/21.1M [00:10<00:10, 995kB/s] Downloading rustup-init:  51%|█████▏    | 10.9M/21.1M [00:10<00:10, 1.02MB/s]Downloading rustup-init:  52%|█████▏    | 11.0M/21.1M [00:10<00:09, 1.04MB/s]Downloading rustup-init:  52%|█████▏    | 11.1M/21.1M [00:10<00:09, 1.06MB/s]Downloading rustup-init:  53%|█████▎    | 11.2M/21.1M [00:11<00:09, 1.07MB/s]Downloading rustup-init:  54%|█████▎    | 11.3M/21.1M [00:11<00:09, 1.07MB/s]Downloading rustup-init:  54%|█████▍    | 11.4M/21.1M [00:11<00:08, 1.08MB/s]Downloading rustup-init:  55%|█████▍    | 11.6M/21.1M [00:11<00:08, 1.15MB/s]Downloading rustup-init:  56%|█████▌    | 11.7M/21.1M [00:11<00:08, 1.13MB/s]Downloading rustup-init:  56%|█████▌    | 11.9M/21.1M [00:11<00:08, 1.12MB/s]Downloading rustup-init:  57%|█████▋    | 12.0M/21.1M [00:11<00:08, 1.10MB/s]Downloading rustup-init:  57%|█████▋    | 12.1M/21.1M [00:12<00:11, 794kB/s] Downloading rustup-init:  58%|█████▊    | 12.2M/21.1M [00:12<00:10, 844kB/s]Downloading rustup-init:  58%|█████▊    | 12.3M/21.1M [00:12<00:09, 944kB/s]Downloading rustup-init:  59%|█████▉    | 12.4M/21.1M [00:12<00:09, 947kB/s]Downloading rustup-init:  60%|█████▉    | 12.6M/21.1M [00:12<00:08, 980kB/s]Downloading rustup-init:  60%|██████    | 12.7M/21.1M [00:12<00:08, 999kB/s]Downloading rustup-init:  61%|██████    | 12.8M/21.1M [00:12<00:07, 1.09MB/s]Downloading rustup-init:  61%|██████▏   | 13.0M/21.1M [00:12<00:07, 1.07MB/s]Downloading rustup-init:  62%|██████▏   | 13.1M/21.1M [00:12<00:08, 970kB/s] Downloading rustup-init:  63%|██████▎   | 13.2M/21.1M [00:13<00:06, 1.16MB/s]Downloading rustup-init:  63%|██████▎   | 13.4M/21.1M [00:13<00:06, 1.18MB/s]Downloading rustup-init:  64%|██████▍   | 13.5M/21.1M [00:13<00:06, 1.14MB/s]Downloading rustup-init:  65%|██████▍   | 13.6M/21.1M [00:13<00:06, 1.14MB/s]Downloading rustup-init:  65%|██████▌   | 13.7M/21.1M [00:13<00:06, 1.14MB/s]Downloading rustup-init:  66%|██████▌   | 13.9M/21.1M [00:13<00:06, 1.11MB/s]Downloading rustup-init:  66%|██████▌   | 14.0M/21.1M [00:13<00:07, 1.00MB/s]Downloading rustup-init:  67%|██████▋   | 14.1M/21.1M [00:13<00:06, 1.10MB/s]Downloading rustup-init:  68%|██████▊   | 14.3M/21.1M [00:13<00:05, 1.16MB/s]Downloading rustup-init:  68%|██████▊   | 14.4M/21.1M [00:14<00:06, 1.07MB/s]Downloading rustup-init:  69%|██████▉   | 14.5M/21.1M [00:14<00:05, 1.12MB/s]Downloading rustup-init:  70%|██████▉   | 14.7M/21.1M [00:14<00:05, 1.13MB/s]Downloading rustup-init:  70%|███████   | 14.8M/21.1M [00:14<00:05, 1.17MB/s]Downloading rustup-init:  71%|███████   | 15.0M/21.1M [00:14<00:05, 1.17MB/s]Downloading rustup-init:  71%|███████▏  | 15.1M/21.1M [00:14<00:05, 1.16MB/s]Downloading rustup-init:  72%|███████▏  | 15.2M/21.1M [00:14<00:05, 1.10MB/s]Downloading rustup-init:  73%|███████▎  | 15.3M/21.1M [00:14<00:05, 1.08MB/s]Downloading rustup-init:  73%|███████▎  | 15.4M/21.1M [00:15<00:05, 1.10MB/s]Downloading rustup-init:  74%|███████▎  | 15.5M/21.1M [00:15<00:05, 1.11MB/s]Downloading rustup-init:  74%|███████▍  | 15.7M/21.1M [00:15<00:05, 1.02MB/s]Downloading rustup-init:  75%|███████▍  | 15.8M/21.1M [00:15<00:04, 1.13MB/s]Downloading rustup-init:  76%|███████▌  | 15.9M/21.1M [00:15<00:04, 1.17MB/s]Downloading rustup-init:  76%|███████▌  | 16.1M/21.1M [00:15<00:04, 1.15MB/s]Downloading rustup-init:  77%|███████▋  | 16.2M/21.1M [00:15<00:04, 1.13MB/s]Downloading rustup-init:  77%|███████▋  | 16.3M/21.1M [00:15<00:04, 1.12MB/s]Downloading rustup-init:  78%|███████▊  | 16.4M/21.1M [00:15<00:04, 1.09MB/s]Downloading rustup-init:  78%|███████▊  | 16.6M/21.1M [00:16<00:04, 1.13MB/s]Downloading rustup-init:  79%|███████▉  | 16.7M/21.1M [00:16<00:03, 1.16MB/s]Downloading rustup-init:  80%|███████▉  | 16.8M/21.1M [00:16<00:03, 1.13MB/s]Downloading rustup-init:  80%|████████  | 16.9M/21.1M [00:16<00:03, 1.09MB/s]Downloading rustup-init:  81%|████████  | 17.1M/21.1M [00:16<00:03, 1.03MB/s]Downloading rustup-init:  82%|████████▏ | 17.2M/21.1M [00:16<00:03, 1.12MB/s]Downloading rustup-init:  82%|████████▏ | 17.4M/21.1M [00:16<00:03, 1.10MB/s]Downloading rustup-init:  83%|████████▎ | 17.5M/21.1M [00:16<00:03, 1.09MB/s]Downloading rustup-init:  83%|████████▎ | 17.6M/21.1M [00:16<00:03, 1.08MB/s]Downloading rustup-init:  84%|████████▍ | 17.7M/21.1M [00:17<00:03, 1.11MB/s]Downloading rustup-init:  85%|████████▍ | 17.9M/21.1M [00:17<00:02, 1.10MB/s]Downloading rustup-init:  85%|████████▌ | 18.0M/21.1M [00:17<00:02, 1.10MB/s]Downloading rustup-init:  86%|████████▌ | 18.1M/21.1M [00:17<00:02, 1.04MB/s]Downloading rustup-init:  86%|████████▌ | 18.2M/21.1M [00:17<00:02, 1.03MB/s]Downloading rustup-init:  87%|████████▋ | 18.3M/21.1M [00:17<00:02, 982kB/s] Downloading rustup-init:  87%|████████▋ | 18.5M/21.1M [00:17<00:02, 1.09MB/s]Downloading rustup-init:  88%|████████▊ | 18.6M/21.1M [00:17<00:02, 1.08MB/s]Downloading rustup-init:  89%|████████▊ | 18.7M/21.1M [00:18<00:02, 1.11MB/s]Downloading rustup-init:  89%|████████▉ | 18.8M/21.1M [00:18<00:02, 1.12MB/s]Downloading rustup-init:  90%|████████▉ | 18.9M/21.1M [00:18<00:01, 1.10MB/s]Downloading rustup-init:  90%|█████████ | 19.1M/21.1M [00:18<00:01, 1.06MB/s]Downloading rustup-init:  91%|█████████ | 19.2M/21.1M [00:18<00:01, 1.16MB/s]Downloading rustup-init:  92%|█████████▏| 19.3M/21.1M [00:18<00:01, 1.11MB/s]Downloading rustup-init:  92%|█████████▏| 19.5M/21.1M [00:18<00:01, 1.12MB/s]Downloading rustup-init:  93%|█████████▎| 19.6M/21.1M [00:18<00:01, 1.12MB/s]Downloading rustup-init:  93%|█████████▎| 19.7M/21.1M [00:18<00:01, 1.08MB/s]Downloading rustup-init:  94%|█████████▍| 19.8M/21.1M [00:19<00:01, 1.03MB/s]Downloading rustup-init:  94%|█████████▍| 19.9M/21.1M [00:19<00:01, 1.09MB/s]Downloading rustup-init:  95%|█████████▌| 20.1M/21.1M [00:19<00:00, 1.11MB/s]Downloading rustup-init:  96%|█████████▌| 20.2M/21.1M [00:19<00:00, 1.15MB/s]Downloading rustup-init:  96%|█████████▌| 20.3M/21.1M [00:19<00:00, 1.17MB/s]Downloading rustup-init:  97%|█████████▋| 20.4M/21.1M [00:19<00:00, 1.01MB/s]Downloading rustup-init:  98%|█████████▊| 20.6M/21.1M [00:19<00:00, 1.12MB/s]Downloading rustup-init:  98%|█████████▊| 20.7M/21.1M [00:19<00:00, 1.16MB/s]Downloading rustup-init:  99%|█████████▊| 20.8M/21.1M [00:19<00:00, 1.05MB/s]Downloading rustup-init:  99%|█████████▉| 21.0M/21.1M [00:20<00:00, 1.09MB/s]Downloading rustup-init: 100%|██████████| 21.1M/21.1M [00:20<00:00, 1.05MB/s]
+         Installing rust to /home/sachithan/.cache/puccinialin/rustup
+         info: profile set to minimal
+         info: setting default host tuple to x86_64-unknown-linux-gnu
+         info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+         info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+         info: downloading 3 components
+         info: default toolchain set to stable-x86_64-unknown-linux-gnu
+         Checking if cargo is installed
+             Updating crates.io index
+          Downloading crates ...
+           Downloaded autocfg v1.1.0
+           Downloaded form_urlencoded v1.2.0
+           Downloaded aho-corasick v1.0.2
+           Downloaded unindent v0.2.3
+           Downloaded ahash v0.8.6
+           Downloaded unicode-bidi v0.3.13
+           Downloaded num-integer v0.1.45
+           Downloaded ryu v1.0.14
+           Downloaded equivalent v1.0.1
+           Downloaded windows-targets v0.48.1
+           Downloaded strum_macros v0.25.3
+           Downloaded lexical-write-integer v0.8.5
+           Downloaded smallvec v1.11.1
+           Downloaded tinyvec_macros v0.1.1
+           Downloaded base64 v0.21.5
+           Downloaded lexical-parse-integer v0.8.6
+           Downloaded num-traits v0.2.16
+           Downloaded indoc v2.0.4
+           Downloaded memoffset v0.9.0
+           Downloaded bitflags v1.3.2
+           Downloaded version_check v0.9.4
+           Downloaded strum v0.25.0
+           Downloaded indexmap v2.0.0
+           Downloaded pyo3-build-config v0.20.0
+           Downloaded serde v1.0.190
+           Downloaded pyo3-macros v0.20.0
+           Downloaded memchr v2.6.3
+           Downloaded proc-macro2 v1.0.69
+           Downloaded once_cell v1.18.0
+           Downloaded percent-encoding v2.3.0
+           Downloaded cfg-if v1.0.0
+           Downloaded quote v1.0.29
+           Downloaded lexical-write-float v0.8.5
+           Downloaded lock_api v0.4.10
+           Downloaded hashbrown v0.14.0
+           Downloaded url v2.4.1
+           Downloaded uuid v1.5.0
+           Downloaded pyo3-ffi v0.20.0
+           Downloaded jiter v0.0.4
+           Downloaded rustversion v1.0.13
+           Downloaded serde_json v1.0.108
+           Downloaded speedate v0.13.0
+           Downloaded tinyvec v1.6.0
+           Downloaded wasi v0.11.0+wasi-snapshot-preview1
+           Downloaded scopeguard v1.1.0
+           Downloaded static_assertions v1.1.0
+           Downloaded cc v1.0.79
+           Downloaded unicode-normalization v0.1.22
+           Downloaded syn v2.0.38
+           Downloaded unicode-ident v1.0.10
+           Downloaded lexical-util v0.8.5
+           Downloaded target-lexicon v0.12.9
+           Downloaded idna v0.4.0
+           Downloaded itoa v1.0.8
+           Downloaded parking_lot v0.12.1
+           Downloaded serde_derive v1.0.190
+           Downloaded parking_lot_core v0.9.8
+           Downloaded python3-dll-a v0.2.9
+           Downloaded heck v0.4.1
+           Downloaded enum_dispatch v0.3.12
+           Downloaded pyo3 v0.20.0
+           Downloaded lexical-core v0.8.5
+           Downloaded lexical-parse-float v0.8.5
+           Downloaded redox_syscall v0.3.5
+           Downloaded pyo3-macros-backend v0.20.0
+           Downloaded getrandom v0.2.10
+           Downloaded zerocopy-derive v0.7.20
+           Downloaded regex v1.10.2
+           Downloaded windows_x86_64_gnullvm v0.48.0
+           Downloaded num-bigint v0.4.4
+           Downloaded zerocopy v0.7.20
+           Downloaded regex-syntax v0.8.2
+           Downloaded regex-automata v0.4.3
+           Downloaded windows_i686_gnu v0.48.0
+           Downloaded windows_aarch64_gnullvm v0.48.0
+           Downloaded windows_x86_64_msvc v0.48.0
+           Downloaded windows_i686_msvc v0.48.0
+           Downloaded libc v0.2.147
+           Downloaded windows_aarch64_msvc v0.48.0
+           Downloaded windows_x86_64_gnu v0.48.0
+         📦 Including license file `LICENSE`
+         🍹 Building a mixed python/rust project
+         🐍 Found CPython 3.14 at /home/sachithan/.cache/uv/builds-v0/.tmpGb78SD/bin/python
+         🔗 Found pyo3 bindings
+         📡 Using build options features, bindings from pyproject.toml
+            Compiling autocfg v1.1.0
+            Compiling proc-macro2 v1.0.69
+            Compiling quote v1.0.29
+            Compiling unicode-ident v1.0.10
+            Compiling target-lexicon v0.12.9
+            Compiling python3-dll-a v0.2.9
+            Compiling once_cell v1.18.0
+            Compiling libc v0.2.147
+            Compiling static_assertions v1.1.0
+            Compiling heck v0.4.1
+            Compiling cfg-if v1.0.0
+            Compiling version_check v0.9.4
+            Compiling lexical-util v0.8.5
+            Compiling parking_lot_core v0.9.8
+            Compiling rustversion v1.0.13
+            Compiling smallvec v1.11.1
+            Compiling scopeguard v1.1.0
+            Compiling tinyvec_macros v0.1.1
+            Compiling memchr v2.6.3
+            Compiling tinyvec v1.6.0
+            Compiling serde v1.0.190
+            Compiling indoc v2.0.4
+            Compiling num-traits v0.2.16
+            Compiling lock_api v0.4.10
+            Compiling num-integer v0.1.45
+            Compiling memoffset v0.9.0
+            Compiling num-bigint v0.4.4
+            Compiling ahash v0.8.6
+            Compiling serde_json v1.0.108
+            Compiling percent-encoding v2.3.0
+            Compiling hashbrown v0.14.0
+            Compiling equivalent v1.0.1
+            Compiling getrandom v0.2.10
+            Compiling pyo3-build-config v0.20.0
+            Compiling zerocopy v0.7.20
+            Compiling syn v2.0.38
+            Compiling aho-corasick v1.0.2
+            Compiling parking_lot v0.12.1
+            Compiling unicode-bidi v0.3.13
+            Compiling unindent v0.2.3
+            Compiling regex-syntax v0.8.2
+            Compiling lexical-write-integer v0.8.5
+            Compiling lexical-parse-integer v0.8.6
+            Compiling lexical-parse-float v0.8.5
+            Compiling lexical-write-float v0.8.5
+            Compiling unicode-normalization v0.1.22
+            Compiling indexmap v2.0.0
+            Compiling form_urlencoded v1.2.0
+            Compiling ryu v1.0.14
+            Compiling lexical-core v0.8.5
+            Compiling itoa v1.0.8
+            Compiling base64 v0.21.5
+            Compiling uuid v1.5.0
+            Compiling idna v0.4.0
+            Compiling pyo3-ffi v0.20.0
+            Compiling pyo3 v0.20.0
+            Compiling pydantic-core v2.14.1 (/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src)
+            Compiling url v2.4.1
+         error: failed to run custom build command for `pydantic-core v2.14.1 (/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src)`
+
+         Caused by:
+           process didn't exit successfully: `/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/target/release/build/pydantic-core-ddd2c18305e6139e/build-script-build` (exit status: 101)
+           --- stdout
+           cargo:rustc-cfg=Py_3_6
+           cargo:rustc-cfg=Py_3_7
+           cargo:rustc-cfg=Py_3_8
+           cargo:rustc-cfg=Py_3_9
+           cargo:rustc-cfg=Py_3_10
+           cargo:rustc-cfg=Py_3_11
+           cargo:rustc-cfg=Py_3_12
+           cargo:rustc-cfg=Py_3_13
+           cargo:rustc-cfg=Py_3_14
+           cargo:rerun-if-changed=python/pydantic_core/core_schema.py
+           cargo:rerun-if-changed=generate_self_schema.py
+
+           --- stderr
+           Traceback (most recent call last):
+             File "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/generate_self_schema.py", line 192, in eval_forward_ref
+               return type_._evaluate(core_schema.__dict__, None, set())
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           TypeError: ForwardRef._evaluate() missing 1 required keyword-only argument: 'recursive_guard'
+
+           During handling of the above exception, another exception occurred:
+
+           Traceback (most recent call last):
+             File "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/generate_self_schema.py", line 240, in <module>
+               main()
+               ~~~~^^
+             File "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/generate_self_schema.py", line 210, in main
+               value = get_schema(s, definitions)
+             File "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/generate_self_schema.py", line 54, in get_schema
+               return type_dict_schema(obj, definitions)
+             File "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/generate_self_schema.py", line 152, in type_dict_schema
+               field_type = eval_forward_ref(field_type)
+             File "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/generate_self_schema.py", line 195, in eval_forward_ref
+               return type_._evaluate(core_schema.__dict__, None)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           TypeError: ForwardRef._evaluate() missing 1 required keyword-only argument: 'recursive_guard'
+
+           thread 'main' (33009) panicked at build.rs:29:9:
+           generate_self_schema.py failed with exit status: 1
+           note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+         warning: build failed, waiting for other jobs to finish...
+         💥 maturin failed
+           Caused by: Failed to build a native library through cargo
+           Caused by: Cargo build finished with "exit status: 101": `env -u CARGO PYO3_BUILD_EXTENSION_MODULE="1" PYO3_ENVIRONMENT_SIGNATURE="cpython-3.14-64bit" PYO3_PYTHON="/home/sachithan/.cache/uv/builds-v0/.tmpGb78SD/bin/python" PYTHON_SYS_EXECUTABLE="/home/sachithan/.cache/uv/builds-v0/.tmpGb78SD/bin/python" "cargo" "rustc" "--profile" "release" "--features" "pyo3/extension-module" "--message-format" "json-render-diagnostics" "--manifest-path" "/home/sachithan/.cache/uv/sdists-v10/pypi/pydantic-core/2.14.1/7B1Yf63FXB0pJRmb/src/Cargo.toml" "--lib" "--crate-type" "cdylib"`
+         Error: command ['maturin', 'pep517', 'build-wheel', '-i', '/home/sachithan/.cache/uv/builds-v0/.tmpGb78SD/bin/python', '--compatibility', 'off'] returned non-zero exit status 1
+
+hint: `pydantic-core` (v2.14.1) was included because `pydantic` (v2.5.0) depends on `pydantic-core`
+
+hint: Build failures usually indicate a problem with the package or the build environment

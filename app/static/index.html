@@ -3,47 +3,213 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="ClaimGuard — preliminary patent-overlap screening for technical drafts, grounded in semantic retrieval and claim evidence." />
+    <meta name="theme-color" content="#f7f7f3" />
     <title>ClaimGuard | Patent intelligence</title>
-    <link rel="stylesheet" href="/app/styles.css?v=3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/app/styles.css?v=9" />
   </head>
   <body>
+    <!-- Shared icon sprite. Stroke/fill come from the consuming SVG so icons inherit text colour. -->
+    <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <symbol id="i-mark" viewBox="0 0 24 24">
+        <circle cx="6" cy="6.5" r="2.1" />
+        <circle cx="18" cy="7" r="2.1" />
+        <circle cx="11" cy="18" r="2.1" />
+        <path d="M8.1 6.6l7.8.4M7.3 8.2l2.5 7.4M16.6 9.2l-3.8 6.7" />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m16.4 16.4 4.1 4.1" />
+      </symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+      </symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24">
+        <path d="M3 12a9 9 0 1 0 2.7-6.4L3 8" />
+        <path d="M3 3v5h5" />
+      </symbol>
+      <symbol id="i-overview" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path d="M6 6l12 12M18 6 6 18" />
+      </symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8v8M8 12h8" />
+      </symbol>
+      <symbol id="i-network" viewBox="0 0 24 24">
+        <circle cx="6" cy="6.5" r="2.1" />
+        <circle cx="18" cy="7" r="2.1" />
+        <circle cx="11" cy="18" r="2.1" />
+        <path d="M8.1 6.6l7.8.4M7.3 8.2l2.5 7.4M16.6 9.2l-3.8 6.7" />
+      </symbol>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </symbol>
+      <symbol id="i-file" viewBox="0 0 24 24">
+        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+        <path d="M14 3v5h5M9 13h6M9 17h6" />
+      </symbol>
+    </svg>
+
     <header class="topbar">
-      <a class="brand" href="/app/"><span class="brand-mark">C</span><span>ClaimGuard</span></a>
-      <span class="quiet">Patent intelligence, made practical</span>
+      <div class="topbar-inner">
+        <a class="brand" href="/app/" aria-label="ClaimGuard home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-mark"></use></svg>
+          </span>
+          <span class="brand-name">ClaimGuard</span>
+          <span class="brand-tag">Patent intelligence</span>
+        </a>
+        <nav class="topnav" aria-label="Primary">
+          <a class="topnav-link active" data-tab="home" href="#home" aria-current="page">Analysis</a>
+          <a class="topnav-link" data-tab="graph" href="#graph">Knowledge graph</a>
+        </nav>
+        <div class="topbar-meta">
+          <span id="status" class="status-chip" data-state="connecting" role="status" aria-live="polite">
+            Connecting to library…
+          </span>
+        </div>
+      </div>
     </header>
-    <main class="shell">
+
+    <!-- ============================== HOME TAB ============================== -->
+    <main class="shell" id="tab-home">
       <section class="hero">
-        <div>
-          <p class="eyebrow">PRELIMINARY IP REVIEW</p>
+        <div class="hero-copy">
+          <p class="eyebrow">Preliminary IP review</p>
           <h1>Know where your idea<br /><em>may overlap.</em></h1>
-          <p class="lede">Describe a product or technical draft and ClaimGuard surfaces the closest indexed patents for a focused first look.</p>
+          <p class="lede">
+            Describe a product or technical draft. ClaimGuard surfaces the closest indexed
+            patents and a grounded first-pass risk read — with the evidence behind it.
+          </p>
+          <p class="hero-note">
+            <span class="dot" aria-hidden="true"></span>
+            <span>Embedding retrieval · claim evidence · grounded report</span>
+          </p>
         </div>
-        <div class="hero-note"><span class="dot"></span><span id="status">Connecting to your patent library…</span></div>
-      </section>
-      <section class="workspace">
-        <div class="panel analyze-panel">
-          <div class="panel-heading"><div><p class="eyebrow">01 / ANALYZE</p><h2>Your technical draft</h2></div><span class="step">AI-assisted</span></div>
-          <textarea id="draft" placeholder="Example: A warehouse robot uses an event camera and LiDAR to build a sparse 3D map, then plans collision-free routes on an edge processor."></textarea>
-          <div class="form-footer"><span id="draft-count">0 characters</span><button id="analyze">Find related patents <span>→</span></button></div>
-          <p class="error" id="error" role="alert"></p>
-        </div>
-        <aside class="panel collection-panel">
-          <p class="eyebrow">YOUR LIBRARY</p>
-          <div class="stats"><div><strong id="patent-count">—</strong><span>indexed patents</span></div></div>
-          <div class="library-head"><h3>Recently indexed</h3><a href="#library">View all</a></div>
-          <div id="recent" class="recent"></div>
+        <aside class="process-card" aria-label="How ClaimGuard works">
+          <p class="eyebrow">How it works</p>
+          <ol class="process-list">
+            <li>
+              <span class="process-step">01</span>
+              <div><strong>Describe</strong><p>Write the system or method in your own words.</p></div>
+            </li>
+            <li>
+              <span class="process-step">02</span>
+              <div><strong>Retrieve</strong><p>Vector search ranks the closest indexed patents.</p></div>
+            </li>
+            <li>
+              <span class="process-step">03</span>
+              <div><strong>Review</strong><p>Read the evidence, risk factors, and report.</p></div>
+            </li>
+          </ol>
         </aside>
       </section>
-      <section id="results" class="results hidden">
-        <div class="results-heading"><div><p class="eyebrow">02 / REVIEW</p><h2>Closest patent signals</h2></div><span id="result-summary" class="quiet"></span></div>
+
+      <section class="workspace" aria-label="Analyze a draft">
+        <div class="panel analyze-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">01 / Analyze</p>
+              <h2>Your technical draft</h2>
+            </div>
+            <span class="step">AI-assisted</span>
+          </div>
+          <label class="field-label" for="draft">Describe the invention, system, or method</label>
+          <textarea
+            id="draft"
+            aria-describedby="draft-help"
+            placeholder="A warehouse robot uses an event camera and LiDAR to build a sparse 3D map, then plans collision-free routes on an edge processor."
+          ></textarea>
+          <div class="form-footer">
+            <span id="draft-help" class="field-hint">
+              <span id="draft-count">0 characters</span> · 20 minimum
+            </span>
+            <button id="analyze" type="button">
+              Find related patents
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+            </button>
+          </div>
+          <div class="example-row">
+            <span class="example-label">Try an example</span>
+            <button class="example-chip" type="button" data-example="tree">Tree compression</button>
+            <button class="example-chip" type="button" data-example="robot">Warehouse robot</button>
+            <button class="example-chip" type="button" data-example="crypto">Post-quantum signature</button>
+          </div>
+          <p class="analyze-progress hidden" id="analyze-progress" role="status" aria-live="polite"></p>
+          <p class="error" id="error" role="alert"></p>
+        </div>
+
+        <aside class="panel collection-panel" aria-label="Patent library summary">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">The library</p>
+              <h2>Coverage</h2>
+            </div>
+          </div>
+          <div class="stats">
+            <div><strong id="patent-count">—</strong><span>indexed patents</span></div>
+          </div>
+          <div class="library-head">
+            <h3>Recently indexed</h3>
+            <a href="#library">View all</a>
+          </div>
+          <div id="recent" class="recent"></div>
+          <p class="collection-note">
+            Screening covers the indexed corpus only. Missing patents are outside this review.
+          </p>
+        </aside>
+      </section>
+
+      <section id="results" class="results hidden" aria-labelledby="results-title">
+        <div class="results-heading">
+          <div>
+            <p class="eyebrow">02 / Review</p>
+            <h2 id="results-title">Closest patent signals</h2>
+          </div>
+          <div class="results-actions">
+            <span id="result-summary" class="quiet" role="status" aria-live="polite"></span>
+            <button
+              id="explore-graph-btn"
+              class="btn-secondary hidden"
+              type="button"
+              title="Open these patents in the knowledge graph"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-network"></use></svg>
+              Explore in knowledge graph
+            </button>
+          </div>
+        </div>
         <div id="matches" class="match-grid"></div>
-        <article id="final-report" class="final-report">
-          <div class="report-heading"><div><p class="eyebrow">03 / FINAL REPORT</p><h2>Preliminary risk assessment</h2></div><span id="risk-badge" class="risk-badge">—</span></div>
+
+        <article id="final-report" class="final-report" aria-labelledby="report-title">
+          <div class="report-heading">
+            <div>
+              <p class="eyebrow">03 / Final report</p>
+              <h2 id="report-title">Preliminary risk assessment</h2>
+            </div>
+            <span id="risk-badge" class="risk-badge">—</span>
+          </div>
           <div class="risk-overview">
             <div class="risk-score"><strong id="risk-score">—</strong><span>risk score / 100</span></div>
-            <div><h3>Cross-patent comparison</h3><p id="comparison">Generating a grounded comparison…</p></div>
+            <div class="risk-summary">
+              <h3>Cross-patent comparison</h3>
+              <p id="comparison">Generating a grounded comparison…</p>
+            </div>
           </div>
-          <div><h3>Risk factors</h3><div id="risk-factors" class="risk-factors"></div></div>
+          <div class="report-block">
+            <h3>Risk factors</h3>
+            <div id="risk-factors" class="risk-factors"></div>
+          </div>
           <div class="report-columns">
             <div><h3>Overlapping claims</h3><ul id="overlapping-claims"></ul></div>
             <div><h3>Technical differences</h3><ul id="technical-differences"></ul></div>
@@ -55,12 +221,149 @@
           <p id="verdict" class="verdict"></p>
         </article>
       </section>
-      <section id="library" class="library-section">
-        <div class="results-heading"><div><p class="eyebrow">THE LIBRARY</p><h2>Indexed patents</h2></div><select id="category"><option value="">All technology areas</option></select></div>
+
+      <section id="library" class="library-section" aria-labelledby="library-title">
+        <div class="results-heading">
+          <div>
+            <p class="eyebrow">The library</p>
+            <h2 id="library-title">Indexed patents</h2>
+          </div>
+          <div class="library-tools">
+            <span id="library-count" class="quiet"></span>
+            <label class="sr-only" for="category">Filter by technology area</label>
+            <select id="category"><option value="">All technology areas</option></select>
+          </div>
+        </div>
         <div id="all-patents" class="patent-list"></div>
       </section>
     </main>
-    <footer>ClaimGuard is a research aid, not legal advice. Always consult qualified counsel.</footer>
-    <script src="/app/app.js?v=3"></script>
+
+    <!-- ========================= KNOWLEDGE GRAPH TAB ========================= -->
+    <main class="shell shell--graph hidden" id="tab-graph" aria-labelledby="graph-title">
+      <section class="graph-header">
+        <div class="graph-heading">
+          <p class="eyebrow">Knowledge graph</p>
+          <h2 id="graph-title">Patent similarity map</h2>
+          <p class="graph-desc quiet">
+            Edges are cosine similarities between patent embeddings in the vector index.
+            Select a node to inspect its record and connections.
+          </p>
+        </div>
+        <div class="graph-controls-bar">
+          <div class="graph-search-wrap">
+            <label class="sr-only" for="graph-search">Search patents</label>
+            <svg class="icon graph-search-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"></use></svg>
+            <input type="search" id="graph-search" placeholder="Search patent ID or title" autocomplete="off" />
+            <span id="graph-search-status" class="sr-only" role="status" aria-live="polite"></span>
+          </div>
+          <div class="graph-controls-sep" aria-hidden="true"></div>
+          <div class="graph-sim-wrap">
+            <label for="sim-threshold">Min. similarity <output id="sim-value" for="sim-threshold">45%</output></label>
+            <input
+              type="range"
+              id="sim-threshold"
+              min="10"
+              max="90"
+              value="45"
+              step="5"
+              aria-describedby="sim-help"
+            />
+            <span id="sim-help" class="sr-only">Only draw edges at or above this cosine similarity.</span>
+          </div>
+          <div class="graph-controls-sep" aria-hidden="true"></div>
+          <div class="graph-btn-group" role="group" aria-label="Graph view controls">
+            <button class="btn-icon" id="graph-fit" type="button" title="Fit to screen" aria-label="Fit graph to screen">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fit"></use></svg>
+            </button>
+            <button class="btn-icon" id="graph-reset" type="button" title="Re-run layout" aria-label="Re-run graph layout">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-reset"></use></svg>
+            </button>
+            <button class="btn-icon" id="graph-default" type="button" title="Return to full graph" aria-label="Return to full overview graph">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-overview"></use></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div class="graph-workspace">
+        <div class="graph-canvas-wrap">
+          <div
+            id="graph-canvas"
+            role="img"
+            aria-label="Interactive patent similarity graph"
+            aria-describedby="graph-help"
+          ></div>
+          <p id="graph-help" class="sr-only">
+            The graph visualises patents as nodes and semantic similarity as edges. Use the
+            patent search field to locate a record, then select a node to read its details.
+            Select the same node again, click empty space, or press Escape to clear it.
+          </p>
+          <div id="graph-loading" class="graph-overlay" role="status" aria-live="polite">
+            <div class="graph-spinner" aria-hidden="true"></div>
+            <p>Building patent similarity map…</p>
+          </div>
+          <div id="graph-empty" class="graph-overlay hidden">
+            <p>No graph data available. The database may still be indexing patents.</p>
+            <button class="btn-secondary" id="graph-retry" type="button">Retry</button>
+          </div>
+          <div id="graph-error" class="graph-overlay hidden" role="alert">
+            <p id="graph-error-msg">An error occurred loading the graph.</p>
+            <button class="btn-secondary" id="graph-error-retry" type="button">Retry</button>
+          </div>
+          <div class="graph-legend" aria-label="Graph legend">
+            <span class="legend-item"><span class="legend-dot legend-patent" aria-hidden="true"></span> Patent</span>
+            <span class="legend-item"><span class="legend-dot legend-query" aria-hidden="true"></span> Your invention</span>
+            <span class="legend-item"><span class="legend-line legend-sim" aria-hidden="true"></span> Similarity</span>
+          </div>
+          <div class="graph-stats-bar">
+            <span id="gs-patents">— patents</span>
+            <span id="gs-edges">— connections</span>
+          </div>
+        </div>
+
+        <aside id="graph-detail" class="graph-detail" aria-label="Node details" aria-live="polite">
+          <div class="detail-header">
+            <div>
+              <span id="detail-type-badge" class="detail-badge">—</span>
+              <h3 id="detail-title">Select a node</h3>
+            </div>
+            <button class="detail-close" id="detail-close" type="button" title="Close details" aria-label="Close details">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"></use></svg>
+            </button>
+          </div>
+          <div id="detail-body" class="detail-body">
+            <p class="quiet">Select a patent node to inspect its title, abstract, and connections.</p>
+          </div>
+          <div id="detail-actions" class="detail-actions"></div>
+        </aside>
+      </div>
+
+      <p class="graph-disclaimer">
+        Similarity edges are a technical discovery signal, not legal infringement evidence.
+        Results are preliminary and should be reviewed by qualified patent counsel.
+      </p>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <p>ClaimGuard is a research aid, not legal advice. Always consult qualified counsel.</p>
+        <nav class="footer-links" aria-label="Resources">
+          <a href="/docs">API reference</a>
+          <a href="/api/v1/health">Service health</a>
+        </nav>
+      </div>
+    </footer>
+
+    <noscript>
+      <p class="noscript">This dashboard requires JavaScript to retrieve and visualise patent data.</p>
+    </noscript>
+
+    <!-- Graph libraries load at the end so a slow CDN never blocks first paint. -->
+    <!-- Cytoscape.js – graph rendering (no SRI hash – avoids CDN hash mismatches) -->
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <!-- Cola layout engine (physics-based, avoids node overlap). Optional – app.js falls back to cose if absent. -->
+    <script src="https://cdn.jsdelivr.net/npm/webcola@3.4.0/WebCola/cola.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.5.1/cytoscape-cola.min.js"></script>
+    <script src="/app/app.js?v=10"></script>
   </body>
 </html>

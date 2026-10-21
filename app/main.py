@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.endpoints import router
+from app.api.graph_endpoints import graph_router
 from app.core.config import get_settings
 from app.core.database import close_database, init_database
 
@@ -33,6 +34,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+app.include_router(graph_router)
 app.mount("/app", StaticFiles(directory="app/static", html=True), name="frontend")
 
 

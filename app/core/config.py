@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     seed_data_path: str = "data/Patents_data_withclaims.csv"
     gemini_api_key: str | None = Field(default=None, repr=False)
     gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_timeout_seconds: float = 120.0
     llm_temperature: float = 0.1
     llm_max_output_tokens: int = 4096
 

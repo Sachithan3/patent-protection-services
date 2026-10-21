@@ -98,6 +98,7 @@ Important variables:
 | `EMBEDDING_VECTOR_DIMENSION` | pgvector dimension | `384` |
 | `GEMINI_API_KEY` | Gemini credential | required for reports |
 | `GEMINI_MODEL` | Gemini model name | `gemini-3.5-flash-lite` |
+| `GEMINI_TIMEOUT_SECONDS` | Per-report Gemini timeout, including SDK retries | `120` |
 | `LLM_MAX_OUTPUT_TOKENS` | Report output limit | `4096` |
 
 Never commit `.env`, database passwords, or API keys.
@@ -367,3 +368,190 @@ Before production use:
 - Store model and scoring versions with every analysis.
 - Add claim parsing and jurisdiction-aware legal review workflows.
 - Avoid presenting any score as a probability of infringement.
+
+---
+
+## 10. Knowledge Graph Explorer
+
+### Overview
+
+The Knowledge Graph Explorer is an interactive, force-directed visualization of
+the indexed patent collection. It surfaces semantic clusters and technical
+concept relationships directly from the existing patent data — no extra
+infrastructure (Neo4j, Redis, etc.) is required.
+
+The graph operates as an additional layer on top of the existing analysis
+pipeline. It does not modify the risk assessment produced by `/analyze`.
+
+### How the graph is constructed
+
+**Step 1 – Patent sample**
+
+For the default view (Mode A) the server selects up to 30 patents using a
+daily-stable random seed (`setseed + ORDER BY random()`). The seed changes
+each day so the overview refreshes, but remains stable within a single day.
+The cap is configurable via `?max_patents=N` (maximum 50).
+
+**Step 2 – Concept extraction**
+
+Technical concepts are extracted from each patent's title, abstract, and first
+claim using deterministic regex-based tokenisation:
+
+1. Lowercase all text; tokenise with `[a-z][a-z0-9-]{1,}`.
+2. Remove tokens in a curated stop-list (patent legalese + generic words).
+3. Build all bigrams and trigrams from the remaining tokens.
+4. Rank phrases by frequency; trigrams receive a ×2 weight bonus.
+5. Return the top 20 phrases per patent.
+
+Extracted concepts are cached in the `concept_cache` PostgreSQL table
+(keyed by `patent_id`) so repeated graph requests are cheap.
+
+**Step 3 – Concept aggregation**
+
+Across the selected patent set, phrases that appear in at least 2 patents
+are promoted to concept nodes. Up to 80 concept nodes are included.
+
+**Step 4 – Similarity edges**
+
+Patent-to-patent edges are computed via pgvector nearest-neighbour queries on
+the existing `embedding` column. An edge is drawn when:
+
+```
+cosine_similarity = 1 − cosine_distance ≥ similarity_threshold
+```
+
+The default threshold is **0.75** (configurable via the API and the UI slider).
+Edges are deduplicated (A→B and B→A produce one undirected edge). A
+`WHERE patent_id != focal_id` guard prevents self-loops.
+
+**Node and edge limits (server-side)**
+
+| Parameter | Default | Maximum |
+|---|---|---|
+| `max_patents` | 30 | 50 |
+| Concept nodes | up to 80 | — |
+| Total edges | up to 200 | — |
+
+### Node types
+
+| Type | Colour | Meaning |
+|---|---|---|
+| `patent` | Green `#2f6b58` | Real indexed patent |
+| `concept` | Indigo `#5b6ee8` | Technical concept phrase |
+| `query` | Orange `#c05621` | Temporary unsaved draft (Mode B only) |
+
+### Edge types
+
+| Type | Colour | Meaning |
+|---|---|---|
+| `PATENT_CONCEPT` | Pale indigo | Patent covers this concept |
+| `PATENT_SIMILAR` | Muted teal | Cosine similarity ≥ threshold |
+| `QUERY_MATCH` | Warm orange (dashed) | Analysis result match |
+
+### Graph modes
+
+**Mode A – Explore the knowledge base**
+
+Click **Knowledge Graph** in the top navigation. A representative daily sample
+of the indexed collection is shown with concept clusters and similarity edges.
+
+**Mode B – Explore an analysis result**
+
+Submit a draft for analysis, then click **⬡ Explore in Knowledge Graph**.
+The graph opens centred on the matching patents, highlighted in orange.
+Their nearest neighbours are automatically expanded. A temporary
+"Your draft (unsaved)" node is added at the centre, clearly labelled as not
+stored in the database. Clicking ⊙ returns to the full overview.
+
+### Interactions
+
+| Action | Effect |
+|---|---|
+| Click patent node | Detail panel: title, abstract, connected concepts |
+| Click concept node | Detail panel: frequency, connected patents |
+| ⊕ Expand neighbourhood | Loads focal patent + k nearest neighbours |
+| Search box | Fuzzy match on patent ID, title, concept term |
+| Patents / Concepts checkboxes | Toggle node types |
+| Similarity slider | Reloads graph with new threshold |
+| ⤢ Fit | Fit all visible nodes to canvas |
+| ↺ Reset | Re-run layout with randomised positions |
+| ⊙ Full graph | Return to Mode A overview |
+
+### API endpoints
+
+```
+GET  /api/v1/graph
+     ?max_patents=30&similarity_threshold=0.75
+     → Default overview graph (Mode A)
+
+POST /api/v1/graph/focused
+     { "patent_ids": [...], "similarity_threshold": 0.75,
+       "expand_neighbours": true, "query_label": "…" }
+     → Focused graph for analysis results (Mode B)
+
+GET  /api/v1/graph/expand/{patent_id}
+     ?similarity_threshold=0.75&neighbour_k=8
+     → Neighbourhood expansion for a single patent
+```
+
+All responses share the shape:
+```json
+{
+  "nodes": [ { "id", "type", "label", "patent_id", "title", "abstract", ... } ],
+  "edges": [ { "id", "source", "target", "type", "weight", "label" } ],
+  "meta":  { "patent_count", "concept_count", "total_edge_count", ... }
+}
+```
+
+Embedding vectors are never exposed in graph API responses.
+
+### Persistent graph tables
+
+One new table is added to the existing PostgreSQL database:
+
+```sql
+concept_cache (
+  id          SERIAL PRIMARY KEY,
+  patent_id   VARCHAR(128) UNIQUE NOT NULL,
+  concepts    JSON NOT NULL,
+  cached_at   TIMESTAMPTZ DEFAULT now()
+)
+```
+
+Created automatically by `Base.metadata.create_all` on application startup.
+Safe to apply to an already-running database. Never drops or modifies the
+`patents` table or any existing data.
+
+### Dependencies
+
+No new Python packages are required. The graph feature reuses:
+
+- Existing: `sqlalchemy`, `asyncpg`, `pgvector`, `fastapi`, `pydantic`
+- Frontend: Cytoscape.js 3.28 + cytoscape-cola 2.5 loaded from CDN (no npm/build step)
+
+### Known limitations
+
+- **Concept extraction is automated and may produce noise.** Bigrams and
+  trigrams from patent text are not curated. Phrases like "data processing"
+  or "control signal" may appear as concepts. Concept nodes indicate thematic
+  overlap, not legally significant claim terms.
+
+- **Semantic similarity is not infringement.** Graph edges reflect cosine
+  similarity between embedding vectors derived from patent text. An edge does
+  not mean the patents are legally related or that infringement has occurred.
+
+- **Default graph sample changes daily.** The random seed is derived from the
+  current UTC date. The node layout may differ between days.
+
+- **Large diverse databases may produce sparse graphs.** With the default
+  threshold of 0.75 and a varied patent corpus, some patents may have no
+  similarity edges. Lower the slider to 0.55–0.65 to reveal more connections.
+
+- **Category nodes are omitted.** The current dataset assigns all patents to
+  the placeholder `Imported Claims` category, which would produce a single
+  meaningless hub. Category nodes can be re-enabled in `knowledge_graph.py`
+  when the dataset is enriched with real taxonomy values.
+
+- **Semantic graph discovery is not legal advice.** All edges and clusters
+  are automated signals for technical exploration. Always consult qualified
+  patent counsel before drawing legal conclusions.

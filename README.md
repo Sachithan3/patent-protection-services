@@ -213,6 +213,7 @@ The main settings are read from `.env`:
 | `EMBEDDING_VECTOR_DIMENSION` | pgvector dimension | `384` |
 | `GEMINI_API_KEY` | Gemini credential | required for reports |
 | `GEMINI_MODEL` | Gemini model | `gemini-3.5-flash-lite` |
+| `GEMINI_TIMEOUT_SECONDS` | Per-report Gemini timeout (also bounds SDK retries) | `120` |
 | `LLM_MAX_OUTPUT_TOKENS` | Maximum report size | `4096` |
 
 ## Troubleshooting
@@ -262,6 +263,15 @@ python -c "from sentence_transformers import SentenceTransformer; SentenceTransf
 
 Check that `GEMINI_API_KEY` is set in `.env`, restart Uvicorn, and verify that
 the key has access to the configured `GEMINI_MODEL`.
+
+### Analysis stays on “Searching” for a long time
+
+Report generation waits on the Gemini API, which can take 20–60 seconds (longer
+when the model is under high demand and the SDK retries a `503`). The web UI
+shows elapsed progress and times out after 2.5 minutes; the API itself gives up
+after `GEMINI_TIMEOUT_SECONDS` (default `120`). Lower that value for a shorter
+wait, or check `docker compose logs app` for the per-stage timings
+(`Embedding and retrieval`, `Claim reranking`, `Gemini report received`).
 
 ## Project structure
 

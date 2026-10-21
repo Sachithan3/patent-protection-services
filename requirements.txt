@@ -5,7 +5,7 @@ pydantic-settings==2.1.0
 python-dotenv==1.0.0
 --extra-index-url https://download.pytorch.org/whl/cpu
 sentence-transformers==2.7.0
-torch==2.2.0+cpu
+torch==2.2.0
 sqlalchemy==2.0.25
 greenlet>=3.0.0
 pgvector==0.2.1
@@ -14,3 +14,8 @@ scipy==1.11.4
 asyncpg==0.29.0
 google-genai>=1.0.0
 pyarrow==17.0.0
+
+# ─── Development / testing ───────────────────────────────────────────────────
+# Install these extras in your dev environment:
+#   pip install pytest pytest-asyncio httpx
+# They are not required for production.

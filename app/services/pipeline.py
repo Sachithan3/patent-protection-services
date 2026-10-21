@@ -4,7 +4,8 @@ import asyncio
 import logging
 import re
 import threading
-from typing import Any
+import time
+from typing import Any, Sequence
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,8 @@ from app.services.rag_service import generate_infringement_report, parse_report_
 logger = logging.getLogger(__name__)
 _embedding_engine: Any | None = None
 _embedding_engine_lock = threading.Lock()
+_claim_embedding_cache: dict[str, list[float]] = {}
+_claim_embedding_lock = threading.Lock()
 _TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{2,}")
 _STOP_WORDS = {
     "and", "are", "the", "for", "from", "with", "into", "that", "this", "using",
@@ -162,6 +165,20 @@ def _patent_feature_overlap(query_terms: set[str], patent: dict[str, Any]) -> fl
     return _lexical_overlap(query_terms, indexed_text)
 
 
+def _embed_claims(
+    embedding_engine: Any, claims: Sequence[str]
+) -> list[list[float]]:
+    """Embed claims once per process; claim text is immutable after seeding."""
+    missing = list(dict.fromkeys(claim for claim in claims if claim not in _claim_embedding_cache))
+    if missing:
+        vectors = embedding_engine.embed_batch(missing)
+        with _claim_embedding_lock:
+            for claim, vector in zip(missing, vectors):
+                _claim_embedding_cache[claim] = vector
+    with _claim_embedding_lock:
+        return [_claim_embedding_cache[claim] for claim in claims]
+
+
 def rerank_claim_candidates(
     patents: list[dict[str, Any]],
     user_draft: str,
@@ -179,7 +196,7 @@ def rerank_claim_candidates(
 
     claim_vectors: list[list[float]] = []
     if query_vector is not None and embedding_engine is not None and claims_to_embed:
-        claim_vectors = embedding_engine.embed_batch(claims_to_embed)
+        claim_vectors = _embed_claims(embedding_engine, claims_to_embed)
 
     evidence_by_patent: dict[int, list[dict[str, Any]]] = {index: [] for index in range(len(patents))}
     for position, (patent_index, claim_number) in enumerate(claim_locations):
@@ -326,6 +343,7 @@ async def analyze_draft_infringement(
 
     async with AsyncSessionLocal() as session:
         query_vector: list[float] | None = None
+        started = time.monotonic()
         try:
             embedding_engine = await asyncio.to_thread(get_embedding_engine)
             query_vector = await asyncio.to_thread(embedding_engine.embed_text, user_draft)
@@ -336,6 +354,11 @@ async def analyze_draft_infringement(
                 )
             candidate_k = min(20, max(top_k * 3, top_k))
             matching_patents = await retrieve_similar_patents(session, query_vector, candidate_k)
+            logger.info(
+                "Embedding and retrieval finished in %.2fs (%d candidates)",
+                time.monotonic() - started,
+                len(matching_patents),
+            )
         except Exception as embedding_error:
             logger.warning("Embedding retrieval unavailable; using keyword fallback: %s", embedding_error)
             candidate_k = min(20, max(top_k * 3, top_k))
@@ -344,13 +367,25 @@ async def analyze_draft_infringement(
     if not matching_patents:
         raise LookupError("No indexed patents were found in the database")
 
-    embedding_engine = get_embedding_engine() if query_vector else None
-    matching_patents = rerank_claim_candidates(
-        matching_patents,
-        user_draft,
-        query_vector,
-        embedding_engine,
+    embedding_engine = (
+        await asyncio.to_thread(get_embedding_engine) if query_vector else None
+    )
+    rerank_started = time.monotonic()
+    # Claim embeddings are CPU work; keep the event loop free for health checks
+    # and other requests while reranking runs.
+    matching_patents = (
+        await asyncio.to_thread(
+            rerank_claim_candidates,
+            matching_patents,
+            user_draft,
+            query_vector,
+            embedding_engine,
+        )
     )[:top_k]
+    logger.info(
+        "Claim reranking finished in %.2fs", time.monotonic() - rerank_started
+    )
+
     report = await generate_infringement_report(user_draft, matching_patents)
     parsed_report = parse_report_json(report)
     parsed_report = calibrate_report_score(parsed_report, matching_patents)
