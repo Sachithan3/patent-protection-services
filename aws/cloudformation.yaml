@@ -1,0 +1,355 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ClaimGuard AI - RDS PostgreSQL + pgvector, ECR, App Runner, Secrets Manager
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+  DbInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    AllowedValues: [db.t3.micro, db.t4g.micro, db.t3.small]
+  DbStorage:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    MaxValue: 100
+  DeployApp:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Deploy the application compute (EC2). Set false until an image exists in ECR.
+  AppInstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+  DbPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 128
+    Description: Master password for the ClaimGuard RDS instance. Supply at deploy time; never commit it.
+
+Conditions:
+  DeployApp: !Equals [!Ref DeployApp, 'true']
+
+Resources:
+  # --- Networking ---
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: claimguard-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: claimguard-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: claimguard-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: claimguard-subnet-2
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # --- Database ---
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: ClaimGuard RDS subnet group
+      SubnetIds:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ClaimGuard RDS security group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # PostgreSQL is reachable only from the application host inside this
+        # VPC. Data ingestion also runs on that host (see DEPLOY.md Step 4), so
+        # the database is never exposed to the public internet.
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+      Tags:
+        - Key: Name
+          Value: claimguard-db-sg
+
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: claimguard/db-credentials
+      Description: ClaimGuard RDS PostgreSQL credentials
+      SecretString: !Sub '{"username":"claimguard_user","password":"${DbPassword}"}'
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: claimguard-db
+      DBInstanceClass: !Ref DbInstanceClass
+      Engine: postgres
+      EngineVersion: '16.15'
+      AllocatedStorage: !Ref DbStorage
+      StorageType: gp3
+      DBName: claimguard_db
+      MasterUsername: claimguard_user
+      MasterUserPassword: !Ref DbPassword
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      BackupRetentionPeriod: 0
+      DeletionProtection: false
+      Tags:
+        - Key: Name
+          Value: claimguard-db
+
+  # --- Container Registry ---
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: claimguard-api
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 10 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+  # --- Secrets ---
+  GeminiSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: claimguard/gemini-api-key
+      Description: ClaimGuard Gemini API key
+      SecretString: '{"api_key":"YOUR_GEMINI_API_KEY_HERE"}'
+
+  # --- IAM ---
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: claimguard-ec2-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: ClaimGuardRuntimeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref DBSecret
+                  - !Ref GeminiSecret
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt DataBucket.Arn
+                  - !Sub '${DataBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: claimguard-ec2-profile
+      Roles:
+        - !Ref EC2InstanceRole
+
+  # --- Data Storage ---
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'claimguard-data-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # --- Application Compute (EC2) ---
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ClaimGuard API host security group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: claimguard-api-sg
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Condition: DeployApp
+    Properties:
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      InstanceType: !Ref AppInstanceType
+      SubnetId: !Ref PublicSubnet1
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      Tags:
+        - Key: Name
+          Value: claimguard-api
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            set -euxo pipefail
+            dnf install -y docker
+            systemctl enable --now docker
+            aws ecr get-login-password --region ${Region} | docker login --username AWS --password-stdin ${Account}.dkr.ecr.${Region}.amazonaws.com
+            docker pull ${Account}.dkr.ecr.${Region}.amazonaws.com/claimguard-api:latest
+            docker run -d --name claimguard --restart unless-stopped \
+              --log-driver awslogs \
+              --log-opt awslogs-region=${Region} \
+              --log-opt awslogs-group=/claimguard/app \
+              --log-opt awslogs-create-group=true \
+              -p 80:8000 \
+              -e APP_AWS_REGION=${Region} \
+              -e DB_SECRET_NAME=claimguard/db-credentials \
+              -e GEMINI_SECRET_NAME=claimguard/gemini-api-key \
+              -e DATABASE_HOST=${DbHost} \
+              -e DATABASE_PORT=5432 \
+              -e DATABASE_NAME=claimguard_db \
+              -e ENVIRONMENT=${EnvName} \
+              -e LOG_LEVEL=INFO \
+              -e EMBEDDING_MODEL=all-MiniLM-L6-v2 \
+              -e EMBEDDING_BATCH_SIZE=128 \
+              -e EMBEDDING_VECTOR_DIMENSION=384 \
+              -e API_PORT=8000 \
+              -e API_RELOAD=false \
+              -e GEMINI_MODEL=gemini-3.5-flash-lite \
+              -e LLM_MAX_OUTPUT_TOKENS=4096 \
+              ${Account}.dkr.ecr.${Region}.amazonaws.com/claimguard-api:latest
+          - Region: !Ref AWS::Region
+            Account: !Ref AWS::AccountId
+            DbHost: !GetAtt DBInstance.Endpoint.Address
+            EnvName: !Ref Environment
+
+  AppEip:
+    Type: AWS::EC2::EIP
+    Condition: DeployApp
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref AppInstance
+      Tags:
+        - Key: Name
+          Value: claimguard-api-eip
+
+Outputs:
+  AppPublicIp:
+    Description: Public IP address of the application host
+    Condition: DeployApp
+    Value: !Ref AppEip
+  AppUrl:
+    Description: Application base URL
+    Condition: DeployApp
+    Value: !Sub 'http://${AppEip}/'
+  ECRRepositoryUri:
+    Description: ECR repository URI
+    Value: !GetAtt ECRRepository.RepositoryUri
+  RDSEndpoint:
+    Description: RDS endpoint
+    Value: !GetAtt DBInstance.Endpoint.Address
+  DataBucketName:
+    Description: S3 data bucket name
+    Value: !Ref DataBucket
+  DBSecretArn:
+    Description: Database credentials secret ARN
+    Value: !Ref DBSecret
+  GeminiSecretArn:
+    Description: Gemini API key secret ARN
+    Value: !Ref GeminiSecret

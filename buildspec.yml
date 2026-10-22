@@ -1,0 +1,28 @@
+version: 0.2
+
+# CodeBuild spec: build the ClaimGuard API image and push it to Amazon ECR.
+# Requires a CodeBuild project with:
+#   - privileged mode enabled (Docker-in-Docker)
+#   - a service role with ECR push + CloudWatch Logs permissions
+
+phases:
+  pre_build:
+    commands:
+      - 'echo "Resolving account and repository..."'
+      - 'AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)'
+      - 'REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/claimguard-api'
+      - 'IMAGE_TAG=$(date +%Y%m%d%H%M%S)'
+      - 'echo "Logging in to Amazon ECR..."'
+      - 'aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com'
+
+  build:
+    commands:
+      - 'echo "Building the Docker image..."'
+      - 'docker build -t $REPOSITORY_URI:latest -t $REPOSITORY_URI:$IMAGE_TAG .'
+
+  post_build:
+    commands:
+      - 'echo "Pushing the Docker image..."'
+      - 'docker push $REPOSITORY_URI:latest'
+      - 'docker push $REPOSITORY_URI:$IMAGE_TAG'
+      - 'echo "Done: $REPOSITORY_URI:$IMAGE_TAG"'
