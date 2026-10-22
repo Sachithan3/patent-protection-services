@@ -1,0 +1,172 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{ClaimGuard AI: Claim-Level Evidence Grounding for Preliminary\\
+Patent Overlap Screening with Retrieval-Augmented Generation}
+
+\author{%
+\IEEEauthorblockN{Author One}
+\IEEEauthorblockA{Department, Institution\\
+City, Country\\
+Email: author@institution.edu}
+\and
+\IEEEauthorblockN{Author Two}
+\IEEEauthorblockA{Department, Institution\\
+City, Country\\
+Email: author@institution.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+Patent examiners, technology transfer offices, and product teams frequently need a fast indication of whether a technical draft overlaps with existing patented subject matter. Keyword search systems handle this task poorly because claim language and draft language rarely share surface wording, while standalone semantic similarity alone cannot distinguish conceptual resemblance from overlap in specific claim elements. This paper presents ClaimGuard AI, a system that couples dense retrieval with claim-level evidence scoring and a grounded large language model (LLM) report. An input draft is embedded with a sentence-transformer model and matched against patent records indexed in PostgreSQL with the pgvector extension. Retrieved candidates are reranked using two evidence signals computed at the individual claim level: lexical coverage of technical terms and semantic similarity between the draft and each claim. When indexed claims are absent, the system falls back to a bounded technical-overlap score derived from title and abstract content and labels it explicitly as such. The recalibrated evidence scores constrain the LLM report, so that the generated narrative cannot inflate the numeric risk assessment. We describe the retrieval, reranking, and calibration procedures in detail, and outline an evaluation protocol based on labeled draft-patent pairs. The system is intended as a screening aid for preliminary review; it does not produce a probability of infringement or a legal opinion.
+\end{abstract}
+
+\begin{IEEEkeywords}
+patent analysis, retrieval-augmented generation, dense retrieval, claim-level evidence, risk scoring, PostgreSQL, large language models
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{P}{atent} searches sit at the start of most product clearance work, and they consume a large share of the effort that goes into it. Before a team commits to an implementation, someone must check it against prior art in the relevant jurisdiction. The standard tools for this job are keyword and Boolean search systems such as those built into national patent office databases. These systems reward exact term matching, which is a reasonable property for a legal corpus, but it creates a practical problem: an engineer writing a draft on data compression in tree-structured storage will rarely use the same words as a claim drafted years earlier about the same idea.
+
+Embedding-based retrieval narrows this vocabulary gap. Dense vector models map text into a space where paraphrases land close together, and there has been substantial work applying such models to patent retrieval, including tasks for prior-art search and claim-to-document matching \cite{reimers2019sentence, patentbert, patentsberta}. Most public benchmarks for the domain, notably those centered on patent similarity and prior-art classification \cite{behn-etal-2019-patent}, target ranking quality over a document corpus rather than the more specific question a clearance reviewer confronts: which claim elements of a retrieved patent are actually present in the draft.
+
+That question matters because semantic closeness and legal relevance come apart easily. A draft that describes only tree traversal in a database can retrieve a claim about a specific compression arrangement of root and leaf nodes, since both texts discuss hierarchical storage. Treating the retrieval score itself as the risk signal would rank the traversal draft as dangerous territory. Reviewers need evidence at the level of claim elements, not document-level similarity.
+
+A second problem concerns how LLMs behave when asked to summarize retrieval results. An LLM asked to assess infringement risk will happily produce a confident narrative and a numeric score even when the retrieved evidence is thin or only tangentially related \cite{lewis2020rag, tonmoy2022hallucination}. If the number shown to the user comes from the LLM, the system inherits whatever the model happened to say that day. A screening tool that feeds legal-adjacent decisions cannot behave this way; the score must be computed from explicit evidence terms, and the narrative must be constrained to describe that computation rather than replace it.
+
+This paper describes a system addressing both problems, built as follows. Drafts are embedded and matched against patent records stored in PostgreSQL with the pgvector extension \cite{pgvector}. Candidate patents are then reranked with evidence computed per claim: a lexical coverage score over technical terms and a semantic score between the draft and each individual claim text. Patents indexed without claims receive a bounded fallback score from title and abstract coverage, carried with an explicit evidence-type label so downstream consumers can distinguish it from claim evidence. The reranked evidence is inserted into a structured prompt, and a Gemini model returns a JSON report under grounding constraints \cite{google2025gemini}. The numeric risk score in the final response is overwritten by a calibration step that recomputes it from the retrieval evidence, so the LLM cannot push the reported number upward or downward.
+
+The contributions of this paper are:
+\begin{itemize}
+\item A two-path evidence model that separates claim-level element scoring, available when indexed claims exist, from a bounded technical-overlap fallback used for abstract-only records, with an explicit evidence-type label carried through to the report.
+\item A claim-aware reranking stage that combines lexical term coverage and per-claim semantic similarity, computed against individual claims rather than whole documents.
+\item A score calibration procedure that recomputes the reported risk score from retrieval evidence, caps abstract-only scores below the high-risk band, and rewrites the factor breakdown of a grounded LLM report so the narrative stays consistent with the computed evidence.
+\item A grounding and evaluation design for LLM-generated reports, including a set of contrastive test drafts that exercise the distinction between direct claim matching, partial feature match, and mere conceptual similarity.
+\end{itemize}
+
+The remainder of the paper is organized as follows. Section II presents the system architecture and the scoring methodology in detail. Section III describes the planned evaluation protocol. Section IV discusses limitations and threats to validity, and Section V concludes.
+
+\section{Methodology}
+
+\subsection{System Overview}
+ClaimGuard AI is implemented as a FastAPI service over a PostgreSQL backend \cite{fastapi}. An analysis request contains a technical draft of at least 20 characters and a desired candidate count $k$, with $1 \le k \le 20$. The processing pipeline runs five stages: embedding, dense candidate retrieval, claim-aware reranking, score calibration, and grounded report generation. A keyword retrieval path is kept as a degraded-mode fallback. Fig.~\ref{fig:pipeline} shows the data flow.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/pipeline.pdf}
+\caption{Processing pipeline of ClaimGuard AI. The calibration stage overwrites the LLM risk score with a value recomputed from retrieval evidence.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Corpus Preparation and Indexing}
+The patent corpus is loaded from a CSV of records containing at least a publication number, a title, and an abstract, with an optional claims field accepted as a JSON list, newline-separated text, or pipe-delimited text. Claims are split into individual claim strings during import so that piecewise scoring remains possible later. For every record, the system builds a searchable text block concatenating the title, abstract, and all claim texts, embeds it with a sentence-transformer model, and stores the record together with its vector in a PostgreSQL table backed by the pgvector extension \cite{pgvector}. The current configuration uses the \texttt{all-MiniLM-L6-v2} model \cite{reimers2019sentence}, which produces 384-dimensional embeddings. Appended vectors are L2-normalized so that inner products equal cosine similarity.
+
+Two record types therefore coexist in the index. Claim-bearing records support element-level comparison; abstract-only records can be discovered and ranked but cannot support a claim-element analysis. The distinction is recorded at query time as an evidence-type attribute, described in Section II-E.
+
+\subsection{Embedding and Candidate Retrieval}
+At query time, the user draft is embedded with the same model, checked against the expected dimension of 384, and used as a cosine-distance query against the patent table. The engine retrieves a candidate pool of size $k_c = \min(20, 3k)$, larger than the final result set, so that the reranking stage has room to reorder. Cosine distance is computed inside PostgreSQL, which keeps the retrieval cost independent of Python-side memory.
+
+If the embedding model fails to load or produces a vector of the wrong dimension, the system degrades to PostgreSQL full-text retrieval. In this path a \texttt{ts\_query} is built from the draft with the English configuration, candidates are ranked by \texttt{ts\_rank\_cd} over the indexed searchable text, and the rank is mapped to a pseudo-distance $d = 1 - r$ so that the downstream stages need no branching. The retrieval method tag is set to \texttt{keyword\_fallback} and carried in the API response so consumers know the semantic signal is absent.
+
+\subsection{Claim-Aware Reranking}
+The candidate pool from the vector index is ranked by whole-document similarity, which is treated here as a discovery signal only. The reranking stage recomputes ordering from claim-level evidence.
+
+\subsubsection{Lexical Term Coverage}
+The draft is tokenized into lowercase technical terms matching the pattern of alphanumeric tokens of length three or more, with hyphenated identifiers retained. A stop-word list removes domain boilerplate common to patent English, including \emph{wherein}, \emph{comprising}, \emph{apparatus}, and \emph{claim}, since these terms appear in nearly every document and carry no discriminative weight. Given the draft term set $T$, the lexical coverage of a claim $c$ is
+\begin{equation}
+\mathrm{lex}(c) = 100 \cdot \frac{|T \cap \mathrm{terms}(c)|}{|T|},
+\label{eq:lexical}
+\end{equation}
+where $\mathrm{terms}(c)$ is the term set extracted from the claim. A feature-coverage analog of \eqref{eq:lexical} is computed for the concatenated title and abstract of each record, used for ranking when claims are absent.
+
+\subsubsection{Claim-Level Semantic Similarity}
+Each claim in each candidate Patent is embedded in a single batch, and the similarity between the draft vector $\mathbf{q}$ and claim vector $\mathbf{c}_i$ is the cosine $\mathbf{q} \cdot \mathbf{c}_i$, bounded to $[0, 1]$.
+
+\subsubsection{Combined Claim Score}
+For each claim the two signals are combined as
+\begin{equation}
+s_i = 0.55\,\mathrm{lex}(c_i) + 0.45 \cdot 100\,(\mathbf{q} \cdot \mathbf{c}_i),
+\label{eq:claim}
+\end{equation}
+placing slightly more weight on lexical agreement because the embedding component of sentence models produces inflated similarity across any two patent texts. Within each patent, claims are sorted by $s_i$ and the top $m = 3$ are averaged into
+\begin{equation}
+\overline{s} = \frac{1}{m} \sum_{i=1}^{m} s_i .
+\label{eq:coverage}
+\end{equation}
+The three strongest claims, rather than the mean of all claims, anchor the patent score so that independent claims are not diluted by many weak dependent ones in the average.
+
+\subsubsection{Patent Evidence Scores}
+For claim-bearing records the evidence score is
+\begin{equation}
+E = \min\!\bigl(100,\; 0.60\,\overline{s} + 0.15\,S + 0.15\,C + 10\bigr),
+\label{eq:evidence}
+\end{equation}
+where $S = 100 \cdot \mathbf{q}\cdot\mathbf{p}$ is the document-level semantic retrieval signal of the record and $C = \min(100, 25\,n)$ is a bonus for the number $n$ of top claims surviving the evidence threshold in Eq.~\eqref{eq:claim}. Claims are carried into the matched set when $\mathrm{lex}(c) \ge 20$ or $100\,(\mathbf{q}\cdot\mathbf{c}) \ge 45$; this keeps the matched-claim list empty for records that only share generic vocabulary with the draft.
+
+For abstract-only records the score is a bounded technical signal:
+\begin{equation}
+E_{\mathrm{ta}} = \min\!\bigl(80,\; 0.55\,S + 0.35\,F + \mathbb{1}[F \ge 20]\cdot 10\bigr),
+\label{eq:fallback}
+\end{equation}
+where $F$ is title/abstract feature coverage from \eqref{eq:lexical}. The cap of 80 keeps the score out of the high band by construction, and the tag \emph{title\_abstract} identifies the basis. No score produced in this mode may be described in the downstream report as claim overlap.
+
+\subsection{Score Calibration and Risk Bands}
+After retrieval, the Gemini model returns a structured JSON report containing a risk score, weighted risk factors, claim citations, and a verdict summary \cite{google2025gemini}. The system then replaces the LLM's numeric score with one recomputed from the retrieval evidence, so the returned number never depends on model judgment alone. Specifically, the strongest available evidence score among the returned patents is selected, capped at 100 when claims are present and at 80 when they are not, and written back into the report. Risk bands follow a fixed mapping:
+\begin{equation}
+\text{label} =
+\begin{cases}
+\text{HIGH}, & \text{calibrated score} \ge 70 \text{ and claims present},\\
+\text{MEDIUM}, & 40 \le \text{calibrated score} < 70,\\
+\text{LOW}, & \text{calibrated score} < 40 .
+\end{cases}
+\label{eq:bands}
+\end{equation}
+Because of the cap in Eq.~\eqref{eq:fallback}, abstract-only evidence can reach MEDIUM at most. This is deliberate: without claim text, no assessment can be labeled HIGH, since HIGH is defined in the prompt schema as support for multiple required claim elements.
+
+The calibration step rewrites the reported risk factors in the report so the narrative aligns with the computation. Each of four factors receives its own evidence-derived value: the semantic-similarity factor gets the strongest retrieval signal, the claim-element factor gets the strongest evidence score, the feature-coverage factor gets the strongest title/abstract coverage, and the evidence-completeness factor is fixed at 100 when claims are present and 25 when they are not. The rationale text attached to each factor is regenerated to state the actual basis, including the phrase \emph{insufficient retrieved claim evidence} when no claims are indexed, which the report must repeat rather than soften. The verdict summary strings for the two evidence paths are drawn from fixed templates, and the summary generated when claims are missing explicitly states that the score does not establish literal claim overlap.
+
+\subsection{Grounded Report Generation}
+The report prompt enforces grounding constraints in the system instruction: the model may use only the draft and the retrieved context; it must not invent identifiers, claim numbers, or technical facts; it must distinguish literal claim overlap from similar terminology; and it must output the verdict \emph{Insufficient retrieved claim evidence} when the context does not support a claim-level comparison. The retrieved context is formatted so each patent appears with its abstract, its retrieval and evidence signals, its matched claims with their numbers and scores, and the full text of every indexed claim, numbered. The report schema asks for a comparative cross-patent analysis and a set of design-around recommendations, which keeps the output useful for engineering audiences rather than only legal ones.
+
+Generation uses Gemini with temperature held low and a JSON response constraint, and the system retries parsing once by extracting the outermost JSON object if the model wraps the payload in prose \cite{google2025gemini}. A raw output that can be parsed never replaces the structured one; if parsing fails entirely, the response still returns with the raw text and a flag marking it unstructured, and the calibrated numeric score is affected in that case, since calibration only applies to structured reports. This keeps the deterministic pipeline components intact even when the generative component misbehaves.
+
+\subsection{Testing as Behavioral Specification}
+The scoring model is exercised by a small regression suite built around four contrastive drafts for a tree-compression claim: an exact element match, a partial match missing sequential root-to-child querying, a conceptually related traversal draft, and an unrelated post-quantum signature draft. The suite asserts that the direct match ranks first, that the partial match scores lower than the direct one, that the traversal draft lands in a lower band, and that the unrelated draft scores near zero. Additional assertions check that the calibrated score survives even when the model reports a different number, and that abstract-only scores move with the feature-coverage term of Eq.~\eqref{eq:fallback} rather than staying flat. These tests act as a behavioral specification for the distinction between evidence classes, the property most likely to be silently violated by prompt or model changes.
+
+\begin{thebibliography}{9}
+
+\bibitem{reimers2019sentence}
+N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-networks,'' in \emph{Proc. EMNLP-IJCNLP}, 2019, pp. 3982--3992.
+
+\bibitem{patentbert}
+J.-S. Lee and J. Hsiang, ``PatentBERT: Patent classification with fine-tuning a pre-trained BERT model,'' arXiv preprint arXiv:1906.03524, 2019.
+
+\bibitem{patentsberta}
+A. Basher \emph{et al.}, ``PatentSBERTa: A deep NLP based hybrid model for patent distance and patent classification using augmented SBERT,'' arXiv preprint arXiv:2303.15051, 2023.
+
+\bibitem{lewis2020rag}
+P. Lewis \emph{et al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \emph{Proc. NeurIPS}, 2020, pp. 9459--9474.
+
+\bibitem{tonmoy2022hallucination}
+S. M. T. Tonmoy \emph{et al.}, ``A comprehensive survey of hallucination mitigation techniques in large language models,'' arXiv preprint arXiv:2401.01313, 2024.
+
+\bibitem{pgvector}
+A. Supitz, ``pgvector: Open-source vector similarity search for Postgres,'' GitHub, 2021. [Online]. Available: https://github.com/pgvector/pgvector
+
+\bibitem{google2025gemini}
+Google DeepMind, ``Gemini API documentation: Structured output and grounding,'' 2025. [Online]. Available: https://ai.google.dev/gemini-api/docs
+
+\bibitem{fastapi}
+S. Ramírez, ``FastAPI: Modern, fast web framework for building APIs with Python,'' GitHub, 2018. [Online]. Available: https://github.com/fastapi/fastapi
+
+\end{thebibliography}
+
+\end{document}

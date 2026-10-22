@@ -1,7 +1,9 @@
 """LLM orchestration for grounded patent infringement reports."""
 
+import asyncio
 import json
 import logging
+import time
 from typing import Any, Mapping, Sequence
 
 from google import genai
@@ -12,14 +14,66 @@ from app.core.rag_prompt import SYSTEM_PROMPT, build_user_prompt
 
 logger = logging.getLogger(__name__)
 
+# Full claim sets make the prompt very large (several patents x 20 claims) and
+# add tens of seconds of latency without improving the evidence used by the
+# report. Keep claim 1 plus the claims that actually matched, then fill with
+# further claims only while the per-patent budget allows.
+_MAX_SELECTED_CLAIMS = 6
+_CLAIM_CHAR_BUDGET = 2600
+
+
+def _select_claims(patent: Mapping[str, Any]) -> tuple[list[tuple[int, str]], int]:
+    """Return the claims worth sending to the LLM and the total claim count."""
+    claims = [str(claim) for claim in (patent.get("claims") or [])]
+    if not claims:
+        return [], 0
+
+    preferred: list[int] = [1]
+    for item in patent.get("matched_claims") or []:
+        try:
+            claim_number = int(item.get("claim_number"))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if 1 <= claim_number <= len(claims):
+            preferred.append(claim_number)
+
+    ordered: list[int] = []
+    for claim_number in [*preferred, *range(1, len(claims) + 1)]:
+        if claim_number not in ordered:
+            ordered.append(claim_number)
+
+    selected: list[tuple[int, str]] = []
+    used_chars = 0
+    always_include = set(preferred)
+    for claim_number in ordered:
+        claim_text = claims[claim_number - 1]
+        within_budget = used_chars + len(claim_text) <= _CLAIM_CHAR_BUDGET
+        if claim_number not in always_include and not within_budget:
+            continue
+        selected.append((claim_number, claim_text))
+        used_chars += len(claim_text)
+        if len(selected) >= _MAX_SELECTED_CLAIMS:
+            break
+
+    return sorted(selected), len(claims)
+
 
 def format_retrieved_context(top_patents: Sequence[Mapping[str, Any]]) -> str:
     """Format retrieval results into explicit, claim-numbered legal context."""
     sections: list[str] = []
     for patent in top_patents:
-        claims = patent.get("claims", [])
+        selected_claims, total_claims = _select_claims(patent)
         claim_lines = "\n".join(
-            f"  Claim {index}: {claim}" for index, claim in enumerate(claims, start=1)
+            f"  Claim {claim_number}: {claim_text}"
+            for claim_number, claim_text in selected_claims
+        )
+        selection_note = (
+            f"Selected claims: {len(selected_claims)} of {total_claims} "
+            "(claim 1 and the strongest matched claims are prioritised). "
+            "Omitted claims were not retrieved for this analysis; do not infer "
+            "their scope."
+            if selected_claims and len(selected_claims) < total_claims
+            else "Claims:"
         )
         sections.append(
             "\n".join(
@@ -35,10 +89,10 @@ def format_retrieved_context(top_patents: Sequence[Mapping[str, Any]]) -> str:
                     "Matched claim evidence:",
                     "\n".join(
                         f"  Claim {item.get('claim_number')}: "
-                        f"{item.get('score', 0):.1f}/100 — {item.get('claim', '')}"
+                        f"{item.get('score', 0):.1f}/100 (see claim text below)"
                         for item in patent.get("matched_claims", [])
                     ) or "  No claim-level match passed the evidence threshold.",
-                    "Claims:",
+                    selection_note,
                     claim_lines or "  No claims supplied.",
                 ]
             )
@@ -62,21 +116,45 @@ async def _generate_with_gemini(prompt: str) -> str:
     if not settings.gemini_api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+    timeout_seconds = settings.gemini_timeout_seconds
+    client = genai.Client(
+        api_key=settings.gemini_api_key,
+        http_options=types.HttpOptions(
+            timeout=int(timeout_seconds * 1000),
+            retry_options=types.HttpRetryOptions(attempts=2, max_delay=5.0),
+        ),
+    )
+    started = time.monotonic()
     try:
-        response = await client.aio.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=settings.llm_temperature,
-                max_output_tokens=settings.llm_max_output_tokens,
-                response_mime_type="application/json",
+        logger.info(
+            "Requesting Gemini report (model=%s, prompt_chars=%d, timeout=%.0fs)",
+            settings.gemini_model,
+            len(prompt),
+            timeout_seconds,
+        )
+        response = await asyncio.wait_for(
+            client.aio.models.generate_content(
+                model=settings.gemini_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=settings.llm_temperature,
+                    max_output_tokens=settings.llm_max_output_tokens,
+                    response_mime_type="application/json",
+                ),
             ),
+            # The SDK timeout covers a single HTTP attempt; this cap covers
+            # retries as well so a stalled request can never hang forever.
+            timeout=timeout_seconds + 5,
         )
         generated_text = _extract_text(response)
         if not generated_text:
             raise RuntimeError("Gemini returned an empty response")
+        logger.info(
+            "Gemini report received in %.1fs (%d chars)",
+            time.monotonic() - started,
+            len(generated_text),
+        )
         return generated_text
     finally:
         close_method = getattr(client, "close", None)
@@ -101,6 +179,13 @@ async def generate_infringement_report(
         report = await _generate_with_gemini(prompt)
         logger.info("Generated infringement report with Gemini")
         return report
+    except TimeoutError as timeout_error:
+        logger.error("Gemini report generation timed out: %s", timeout_error)
+        raise RuntimeError(
+            "Gemini did not respond within "
+            f"{get_settings().gemini_timeout_seconds:.0f} seconds. "
+            "The report service may be busy; please try again."
+        ) from timeout_error
     except Exception as gemini_error:
         logger.error("Gemini report generation failed: %s", gemini_error)
         raise RuntimeError(

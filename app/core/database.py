@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.config import Settings, get_settings
 from app.models.patent import Base, Patent
+# Import graph models so their tables are included in Base.metadata.create_all
+from app.models.graph import ConceptCache  # noqa: F401
 
 logger = logging.getLogger(__name__)
 csv.field_size_limit(sys.maxsize)
